@@ -2,11 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="/manifest.json">
-  <title>DinoBallz Clone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dino Ballz Clone</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
 
@@ -30,7 +27,7 @@
     }
     .game-canvas {
       width: 100%; height: auto; 
-      max-width: 100%; max-height: 100vh;
+      max-width: 100%; max-height: 100dvh;
       aspect-ratio: 7 / 10;
       background-color: #0f172a;
       touch-action: none;
@@ -108,14 +105,9 @@
               <span class="stat-label">SCORE</span>
               <span class="stat-value" id="scoreText">1</span>
             </div>
-            </div>
             <div class="stat-box">
               <span class="stat-label">HIGH SCORE</span>
               <span class="stat-value" id="highScoreText" style="color: #facc15;">1</span>
-            </div>
-            <div class="stat-box" style="margin-left: 10px;">
-              <span class="stat-label" style="color: #facc15; text-shadow: 0 1px 2px #b45309;">COINS</span>
-              <span class="stat-value" id="topCoinText" style="color: #fef08a;">0</span>
             </div>
           </div>
           <button id="menuBtn" style="pointer-events: auto; background: rgba(0,0,0,0.6); border: 2px solid #334155; color: #fff; font-weight: bold; border-radius: 12px; padding: 10px 18px; cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
@@ -151,28 +143,8 @@
         <h2 class="game-over-title" style="background: linear-gradient(to right, #34d399, #3b82f6); -webkit-background-clip: text; font-size: 3.5rem;">PAUSED</h2>
         <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; width: 80%; max-width: 300px;">
             <button class="retry-button" id="resumeBtn" style="padding: 1rem; font-size: 1.2rem; border-radius: 12px;">RESUME</button>
-            <button class="retry-button" id="openShopBtn" style="background: linear-gradient(135deg, #facc15, #eab308); color: #000; box-shadow: 0 10px 15px -3px rgba(250, 204, 21, 0.4); padding: 1rem; font-size: 1.2rem; border-radius: 12px;">SHOP / UPGRADES</button>
             <button class="retry-button" id="quitBtn" style="background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.4); padding: 1rem; font-size: 1.2rem; border-radius: 12px;">CHAR SELECT</button>
         </div>
-      </div>
-
-      <!-- Shop Overlay -->
-      <div class="game-over-overlay" id="shopOverlay">
-        <h2 class="game-over-title" style="background: linear-gradient(to right, #facc15, #f59e0b); -webkit-background-clip: text; font-size: 3.5rem;">SHOP</h2>
-        
-        <div style="margin: 1.5rem 0; font-size: 1.5rem; font-weight: bold; color: #fff;">
-          Coins: <span id="shopCoins" style="color: #facc15;">0</span>
-        </div>
-        
-        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 2rem; border: 2px solid rgba(250,204,21,0.3);">
-            <div style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #cbd5e1; font-weight: bold;">BASE DAMAGE</div>
-            <div style="font-size: 2.5rem; font-weight: 900; margin-bottom: 1rem; color: #38bdf8;">Lv. <span id="shopBaseDamage">1</span></div>
-            <button class="retry-button" id="upgradeBtn" style="padding: 1rem; width: 100%; font-size: 1.2rem; border-radius: 12px; background: linear-gradient(135deg, #facc15, #eab308); color: #000;">
-                UPGRADE (<span id="upgradeCost">100</span>)
-            </button>
-        </div>
-
-        <button class="retry-button" id="closeShopBtn" style="background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 10px 15px -3px rgba(100, 116, 139, 0.4); padding: 1rem; width: 80%; max-width: 300px; font-size: 1.2rem; border-radius: 12px;">CLOSE</button>
       </div>
 
       <!-- Ranking Overlay -->
@@ -189,11 +161,6 @@
   </div>
 
   <script>
-    const storage = {
-      getItem: (key) => { try { return localStorage.getItem(key); } catch(e) { return null; } },
-      setItem: (key, val) => { try { localStorage.setItem(key, val); } catch(e) {} }
-    };
-
     const LOGICAL_WIDTH = 700;
     const LOGICAL_HEIGHT = 1000;
     const GRID_COLS = 7;
@@ -203,7 +170,7 @@
     const BALL_SPEED = 2000;
     const SHOOT_DELAY = 0.05;
 
-    let highScore = storage.getItem('dinoHighScore') || 1;
+    let highScore = localStorage.getItem('dinoHighScore') || 1;
 
     const generateRow = (row, score) => {
       const blocks = [];
@@ -269,14 +236,13 @@
           }
 
           blocks.push({ id: Math.random().toString(36).substring(7), col: c, row, hp: actualHp, maxHp: actualHp, type, shape, shield, isTransparent: false, hitTimer: 0 });
-        } else if (Math.random() < 0.35) { 
+        } else if (Math.random() < 0.25) { 
           let type = 'add_ball';
           const itemRand = Math.random();
           if (score > 5) {
-             if (itemRand < 0.1) type = 'thunder_v';
-             else if (itemRand < 0.2) type = 'thunder_h';
-             else if (itemRand < 0.3) type = 'split';
-             else if (itemRand < 0.5) type = 'coin';
+             if (itemRand < 0.15) type = 'thunder_v';
+             else if (itemRand < 0.3) type = 'thunder_h';
+             else if (itemRand < 0.45) type = 'split';
           }
           items.push({ id: Math.random().toString(36).substring(7), col: c, row, type, collected: false, triggered: false });
         }
@@ -287,9 +253,7 @@
     let state = {
       status: 'START_SCREEN',
       previousStatus: null,
-      selectedChar: storage.getItem('dinoSelectedChar') || 'original',
-      totalCoins: parseInt(storage.getItem('dinoCoins')) || 0,
-      baseDamage: parseInt(storage.getItem('dinoBaseDamage')) || 1,
+      selectedChar: localStorage.getItem('dinoSelectedChar') || 'original',
       particles: [],
       warpBlocks: [],
       effects: [],
@@ -311,19 +275,19 @@
       warpTimer: 0,
       turnTimer: 0,
       speedMult: 1.0,
-      username: storage.getItem('dinoUsername') || 'Player',
+      username: localStorage.getItem('dinoUsername') || 'Player',
       lastPlayTimestamp: null
     };
 
-    let leaderboard = JSON.parse(storage.getItem('dinoLeaderboard'));
+    let leaderboard = JSON.parse(localStorage.getItem('dinoLeaderboard'));
     if (!leaderboard) {
         leaderboard = [];
-        storage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
+        localStorage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
     }
     
     // Clean up any old dummy data if it exists from previous versions
     leaderboard = leaderboard.filter(entry => entry.timestamp);
-    storage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
+    localStorage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -353,7 +317,7 @@
     usernameInput.value = state.username;
     usernameInput.addEventListener('input', (e) => {
         state.username = e.target.value || 'Player';
-        storage.setItem('dinoUsername', state.username);
+        localStorage.setItem('dinoUsername', state.username);
     });
 
     const rankingOverlay = document.getElementById('rankingOverlay');
@@ -422,59 +386,10 @@
       updateUI();
     });
 
-    const updateShopUI = () => {
-        const cost = 100 + (state.baseDamage - 1) * 50;
-        document.getElementById('shopCoins').innerText = state.totalCoins || 0;
-        document.getElementById('shopBaseDamage').innerText = state.baseDamage || 1;
-        document.getElementById('upgradeCost').innerText = cost;
-        document.getElementById('upgradeBtn').style.opacity = state.totalCoins >= cost ? '1' : '0.5';
-    };
-
-    const openShopBtn = document.getElementById('openShopBtn');
-    const closeShopBtn = document.getElementById('closeShopBtn');
-    const upgradeBtn = document.getElementById('upgradeBtn');
-    const shopOverlay = document.getElementById('shopOverlay');
-
-    openShopBtn.addEventListener('click', () => {
-        state.status = 'SHOP';
-        updateShopUI();
-        updateUI();
-    });
-
-    closeShopBtn.addEventListener('click', () => {
-        state.status = 'PAUSED'; // returning to pause menu
-        updateUI();
-    });
-
-    upgradeBtn.addEventListener('click', () => {
-        const cost = 100 + (state.baseDamage - 1) * 50;
-        if (state.totalCoins >= cost) {
-            state.totalCoins -= cost;
-            state.baseDamage++;
-            storage.setItem('dinoCoins', state.totalCoins.toString());
-            storage.setItem('dinoBaseDamage', state.baseDamage.toString());
-            updateShopUI();
-            topCoinText.innerText = state.totalCoins;
-            
-            // Effect
-            for(let k=0; k<15; k++){
-                const a = Math.random() * Math.PI * 2;
-                const s = Math.random() * 5 + 2;
-                state.particles.push({
-                    x: LOGICAL_WIDTH / 2,
-                    y: LOGICAL_HEIGHT / 2,
-                    vx: Math.cos(a) * s,
-                    vy: Math.sin(a) * s,
-                    life: 1.5, maxLife: 1.5, color: '#fde047'
-                });
-            }
-        }
-    });
-
     charButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         state.selectedChar = btn.dataset.char;
-        storage.setItem('dinoSelectedChar', state.selectedChar);
+        localStorage.setItem('dinoSelectedChar', state.selectedChar);
         updateCharSelectionUI();
       });
     });
@@ -482,28 +397,19 @@
     const updateUI = () => {
       scoreText.innerText = state.score;
       highScoreText.innerText = highScore;
-      topCoinText.innerText = state.totalCoins || 0;
       if (state.status === 'GAME_OVER' || state.status === 'START_SCREEN') {
         overlayTitle.innerText = state.status === 'GAME_OVER' ? 'GAME OVER' : 'DINO BALLZ';
         gameOverOverlay.classList.add('active');
         pauseOverlay.classList.remove('active');
         rankingOverlay.classList.remove('active');
-        shopOverlay.classList.remove('active');
       } else if (state.status === 'PAUSED') {
         gameOverOverlay.classList.remove('active');
         pauseOverlay.classList.add('active');
         rankingOverlay.classList.remove('active');
-        shopOverlay.classList.remove('active');
-      } else if (state.status === 'SHOP') {
-        gameOverOverlay.classList.remove('active');
-        pauseOverlay.classList.remove('active');
-        rankingOverlay.classList.remove('active');
-        shopOverlay.classList.add('active');
       } else {
         gameOverOverlay.classList.remove('active');
         pauseOverlay.classList.remove('active');
         rankingOverlay.classList.remove('active');
-        shopOverlay.classList.remove('active');
       }
     };
 
@@ -538,8 +444,7 @@
         launched: false,
         isLeader: idx === 0,
         bounceCount: 0,
-        history: [], // For ball trails
-        hitCount: 0
+        history: [] // For ball trails
       }));
 
       state.status = 'SHOOTING';
@@ -622,8 +527,6 @@
       
       state = {
         selectedChar: state.selectedChar,
-        totalCoins: state.totalCoins || 0,
-        baseDamage: state.baseDamage || 1,
         status: 'AIMING',
         particles: [],
         warpBlocks: [],
@@ -661,7 +564,7 @@
             state.effects.push({ type: 'thunder_flash', timer: 0.3 });
         }
         
-        const thunderDamage = state.baseDamage;
+        const thunderDamage = 50 + state.score * 2;
         const isVertical = item.type === 'thunder_v';
         const effectType = item.type;
         const ex = item.col * BLOCK_SIZE + BLOCK_SIZE / 2;
@@ -758,7 +661,7 @@
               }
               if (state.score > highScore) {
                  highScore = state.score;
-                 storage.setItem('dinoHighScore', highScore);
+                 localStorage.setItem('dinoHighScore', highScore);
               }
               
               const newRow = generateRow(0, state.score);
@@ -845,9 +748,9 @@
       });
       state.particles = state.particles.filter(p => p.life > 0);
 
-      for (let i = 0; i < state.blocks.length; i++) {
-          if (state.blocks[i].hitTimer > 0) state.blocks[i].hitTimer -= dt;
-      }
+      state.blocks.forEach(b => {
+          if (b.hitTimer > 0) b.hitTimer -= dt;
+      });
 
       if (state.status === 'SHOOTING' || state.status === 'RESOLVING') {
         let activeCount = 0;
@@ -864,26 +767,14 @@
         let subSteps = Math.ceil(2 * state.speedMult); 
         let subDt = (dt * state.speedMult) / subSteps;
         
-        let bounceCountThisFrame = 0;
-        subStepLoop:
         for (let s = 0; s < subSteps; s++) {
            if (!b.active) break;
            b.x += b.vx * subDt;
            b.y += b.vy * subDt;
 
-             let wallBounced = false;
-             if (b.x - BALL_RADIUS < 0) { b.x = BALL_RADIUS; b.vx *= -1; b.hitCount++; wallBounced = true; }
-             if (b.x + BALL_RADIUS > LOGICAL_WIDTH) { b.x = LOGICAL_WIDTH - BALL_RADIUS; b.vx *= -1; b.hitCount++; wallBounced = true; }
-             if (b.y - BALL_RADIUS < 0) { b.y = BALL_RADIUS; b.vy *= -1; b.hitCount++; wallBounced = true; }
-
-             if (wallBounced) {
-                 bounceCountThisFrame++;
-                 if (bounceCountThisFrame >= 5) {
-                     b.x += (Math.random() - 0.5) * 1.0;
-                     b.y += (Math.random() - 0.5) * 1.0;
-                     break subStepLoop;
-                 }
-             }
+             if (b.x - BALL_RADIUS < 0) { b.x = BALL_RADIUS; b.vx *= -1; }
+             if (b.x + BALL_RADIUS > LOGICAL_WIDTH) { b.x = LOGICAL_WIDTH - BALL_RADIUS; b.vx *= -1; }
+             if (b.y - BALL_RADIUS < 0) { b.y = BALL_RADIUS; b.vy *= -1; }
 
              if (b.y + BALL_RADIUS > LOGICAL_HEIGHT) {
                let shouldBounce = false;
@@ -927,9 +818,9 @@
                     if (item.type === 'split') {
                         item.triggered = true; // Flags for removal at turn end
                         
-                        if (!b.isSplitClone && state.balls.length < 300) {
+                        if (state.balls.length < 300) {
                             const angle = Math.atan2(b.vy, b.vx);
-                            const speed = BALL_SPEED;
+                            const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
                             const jitter1 = (Math.PI / 6) + Math.random() * (Math.PI / 6);
                             const jitter2 = (Math.PI / 6) + Math.random() * (Math.PI / 6);
                             let angle1 = angle + jitter1;
@@ -965,22 +856,6 @@
                     } else if (item.type === 'add_ball') {
                         item.collected = true; // Consumed instantly
                         state.addedBallsNextTurn++;
-                    } else if (item.type === 'coin') {
-                        item.collected = true;
-                        state.totalCoins++;
-                        storage.setItem('dinoCoins', state.totalCoins.toString());
-                        // Particle effect
-                        for(let k=0; k<8; k++){
-                            const a = Math.random() * Math.PI * 2;
-                            const s = Math.random() * 3 + 1;
-                            state.particles.push({
-                                x: item.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                                y: item.row * BLOCK_SIZE + BLOCK_SIZE / 2,
-                                vx: Math.cos(a) * s,
-                                vy: Math.sin(a) * s,
-                                life: 1.0, maxLife: 1.0, color: '#facc15'
-                            });
-                        }
                     }
                 }
              }
@@ -1051,15 +926,9 @@
                    continue;
                }
                  
-                let damage = state.baseDamage;
-                if (state.selectedChar === 'punch') damage += 1; 
-                if (state.selectedChar === 'dino' && b.isLeader) damage += Math.max(1, state.baseDamage); 
-
-                let multiplier = 1;
-               if (b.hitCount >= 200) multiplier = 5;
-               else if (b.hitCount >= 100) multiplier = 2;
-               
-               damage *= multiplier;
+               let damage = 1;
+               if (state.selectedChar === 'punch') damage = 2; 
+               if (state.selectedChar === 'dino' && b.isLeader) damage = 4; 
 
                let instantKill = false;
                if (state.selectedChar === 'reaper' && Math.random() < 0.05) { 
@@ -1087,20 +956,6 @@
                    block.hp -= damage;
                }
                
-               b.hitCount++;
-               
-               if (multiplier > 1 && damage > 0 && block.hp < prevHp) {
-                   state.effects.push({
-                       type: 'damage_popup',
-                       text: damage.toString(),
-                       x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                       y: closestY - 20,
-                       timer: 0.6,
-                       scale: multiplier === 5 ? 1.5 : 1.2,
-                       isBlue: multiplier === 5
-                   });
-               }
-               
                if (damage > 0 || instantKill) {
                    block.hitTimer = 0.1; // Trigger flash only if damaged
                }
@@ -1119,12 +974,6 @@
                }
 
                if (!penetrate) {
-                   bounceCountThisFrame++;
-                   if (bounceCountThisFrame >= 5) {
-                       b.x += (Math.random() - 0.5) * 1.0;
-                       b.y += (Math.random() - 0.5) * 1.0;
-                       break subStepLoop;
-                   }
                    if (hitHypotenuse) {
                        const temp = b.vx;
                        if (block.shape === 'triangle_tl' || block.shape === 'triangle_br') {
@@ -1159,55 +1008,46 @@
         }
       }
 
+        const deadBlocks = state.blocks.filter(b => b.hp <= 0);
         let bossDefeated = false;
         
-        for (let i = state.blocks.length - 1; i >= 0; i--) {
-            const b = state.blocks[i];
-            if (b.hp <= 0) {
-                 const bx = b.col * BLOCK_SIZE + BLOCK_SIZE / 2;
-                 const by = b.row * BLOCK_SIZE + BLOCK_SIZE / 2;
+        deadBlocks.forEach(b => {
+             const bx = b.col * BLOCK_SIZE + BLOCK_SIZE / 2;
+             const by = b.row * BLOCK_SIZE + BLOCK_SIZE / 2;
+             
+             if (b.type === 'iron') {
+                 // Armor broken, transform to normal block
+                 b.hp = state.score + Math.floor(Math.random() * (state.score * 0.5));
+                 b.type = 'normal';
+                 spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
+             } else {
+                 let mainColor = '#38bdf8';
+                 if (b.type === 'muddy' || b.type === 'slime') mainColor = '#4ade80';
+                 else if (b.type === 'ghost') mainColor = '#c084fc';
+                 else if (b.type === 'boss') { mainColor = '#f43f5e'; bossDefeated = true; }
+                 else mainColor = `hsl(${Math.max(0, 200 - b.hp * 2)}, 80%, 60%)`;
                  
-                 if (b.type === 'iron') {
-                     // Armor broken, transform to normal block
-                     b.hp = state.score + Math.floor(Math.random() * (state.score * 0.5));
-                     b.type = 'normal';
-                     spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
-                 } else {
-                     let mainColor = '#38bdf8';
-                     if (b.type === 'muddy' || b.type === 'slime') mainColor = '#4ade80';
-                     else if (b.type === 'ghost') mainColor = '#c084fc';
-                     else if (b.type === 'boss') { mainColor = '#f43f5e'; bossDefeated = true; }
-                     else mainColor = `hsl(${Math.max(0, 200 - b.hp * 2)}, 80%, 60%)`;
-                     
-                     spawnParticles(bx, by, mainColor, 15);
-                     state.blocks.splice(i, 1);
-                 }
-            }
-        }
+                 spawnParticles(bx, by, mainColor, 15);
+                 b.markedForDeath = true;
+             }
+        });
+
+        state.blocks = state.blocks.filter(b => !b.markedForDeath);
 
         if (bossDefeated) state.bossDefeatedThisTurn = true;
 
-        if ((state.status === 'SHOOTING' || state.status === 'RESOLVING') && (state.blocks.length === 0 || bossDefeated)) {
-            state.status = 'RESOLVING';
-            for (let i = 0; i < state.balls.length; i++) {
-                const b = state.balls[i];
+        if (state.status === 'RESOLVING' && (state.blocks.length === 0 || bossDefeated)) {
+            state.balls.forEach(b => {
                 if (b.active) {
                     b.active = false;
                     b.history = [];
                     b.y = LOGICAL_HEIGHT - BALL_RADIUS;
                     if (state.firstReturnX === null) state.firstReturnX = b.x;
                 }
-            }
+            });
         }
 
-        let isAnyBallActive = false;
-        for (let i = 0; i < state.balls.length; i++) {
-            if (state.balls[i].active) {
-                isAnyBallActive = true;
-                break;
-            }
-        }
-        
+        const isAnyBallActive = state.balls.some(b => b.active);
         if (state.status === 'RESOLVING' && !isAnyBallActive) {
           const blocksRemaining = state.blocks.length;
           const blocksDestroyed = state.blocksCountAtStart - blocksRemaining;
@@ -1226,17 +1066,11 @@
               state.effects.push({ type: 'warp_lightning', isBoss: true, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
               state.effects.push({ type: 'eval_text_warp', text: 'BOSS DEFEATED!', color: '#f43f5e', timer: 1.5, y: LOGICAL_HEIGHT / 2 });
           } else if (blocksRemaining === 0 && state.blocksCountAtStart > 0) {
-              if (state.score % 50 === 49) {
-                  // ボス直前（49, 99...）で全消しした場合、ワープしてしまうと49ループに陥りボスが出ないためワープをキャンセル
-                  evalText = 'FANTASTIC';
-                  evalColor = '#facc15';
-              } else {
-                  state.status = 'WARPING';
-                  state.warpCounter = 0;
-                  state.warpTimer = 0;
-                  state.effects.push({ type: 'warp_lightning', isBoss: false, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
-                  state.effects.push({ type: 'eval_text_warp', text: 'FANTASTIC', color: '#facc15', timer: 1.5, y: LOGICAL_HEIGHT / 2 });
-              }
+              state.status = 'WARPING';
+              state.warpCounter = 0;
+              state.warpTimer = 0;
+              state.effects.push({ type: 'warp_lightning', isBoss: false, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+              state.effects.push({ type: 'eval_text_warp', text: 'FANTASTIC', color: '#facc15', timer: 1.5, y: LOGICAL_HEIGHT / 2 });
           } else if (blocksDestroyed >= 7) {
               evalText = 'EXCELLENT';
               evalColor = '#10b981'; // Emerald Green
@@ -1271,7 +1105,7 @@
 
              if (state.score > highScore) {
                 highScore = state.score;
-                storage.setItem('dinoHighScore', highScore);
+                localStorage.setItem('dinoHighScore', highScore);
              }
 
              state.startX = state.firstReturnX !== null ? state.firstReturnX : state.startX;
@@ -1310,7 +1144,7 @@
                leaderboard.push(currentEntry);
                leaderboard.sort((a, b) => b.score - a.score);
                if (leaderboard.length > 100) leaderboard = leaderboard.slice(0, 100);
-               storage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
+               localStorage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
                state.lastPlayTimestamp = currentEntry.timestamp;
                
                updateUI();
@@ -1854,7 +1688,6 @@
           let alpha = eff.timer / 0.4;
           if (eff.type === 'thunder_v' || eff.type === 'thunder_h') alpha = eff.timer / 0.8;
           else if (eff.type === 'warp_lightning' || eff.type === 'eval_text') alpha = eff.timer / 1.5;
-          else if (eff.type === 'damage_popup') alpha = eff.timer / 0.6;
           
           ctx.save();
           if (eff.type === 'thunder_v' || eff.type === 'thunder_h') {
@@ -1956,19 +1789,7 @@
                  ctx.lineWidth = 4;
                  ctx.stroke();
               }
-          } else if (eff.type === 'damage_popup') {
-               const p = eff.timer / 0.6;
-               ctx.translate(eff.x, eff.y - (1 - p) * 50); // Float up
-               ctx.scale(eff.scale, eff.scale);
-               ctx.globalAlpha = p < 0.2 ? p / 0.2 : 1;
-               ctx.fillStyle = eff.isBlue ? '#60a5fa' : '#fef08a';
-               ctx.font = '900 24px "Nunito", sans-serif';
-               ctx.textAlign = 'center';
-               ctx.textBaseline = 'middle';
-               ctx.shadowColor = eff.isBlue ? '#3b82f6' : '#eab308';
-               ctx.shadowBlur = 10;
-               ctx.fillText(eff.text, 0, 0);
-           }
+          }
           ctx.restore();
       });
       // Remove finished effects
@@ -2018,28 +1839,18 @@
 
               // Draw Ball
               const radius = ball.isLeader ? BALL_RADIUS * 1.5 : BALL_RADIUS;
-              
-              if (ball.hitCount >= 200) {
-                  ctx.fillStyle = '#00AFFF'; // Vivid blue
-                  ctx.shadowColor = '#0077FF';
-                  ctx.shadowBlur = 20;
-              } else if (ball.hitCount >= 100) {
-                  ctx.fillStyle = '#FFD700'; // Gold
-                  ctx.shadowColor = '#DAA520';
-                  ctx.shadowBlur = 15;
-              } else if (ball.isLeader) {
+              if (ball.isLeader) {
                   ctx.fillStyle = '#fef08a';
                   ctx.shadowColor = '#facc15';
-                  ctx.shadowBlur = 10;
               } else {
                   if (state.selectedChar === 'orange') ctx.fillStyle = '#ffedd5';
                   else if (state.selectedChar === 'reaper') ctx.fillStyle = '#f3e8ff';
                   else if (state.selectedChar === 'punch') ctx.fillStyle = '#fce7f3';
                   else ctx.fillStyle = '#fdf4ff';
                   ctx.shadowColor = '#c084fc';
-                  ctx.shadowBlur = 10;
               }
               
+              ctx.shadowBlur = 10;
               ctx.beginPath();
               if (!ball.active) {
                 const drawX = state.firstReturnX !== null ? state.firstReturnX : ball.x;
