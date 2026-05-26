@@ -196,6 +196,33 @@
 
     const LOGICAL_WIDTH = 700;
     const LOGICAL_HEIGHT = 1000;
+    const FLOOR_Y = LOGICAL_HEIGHT - 35; // Physical floor at dino mouth
+    const DOTTED_LINE_Y = LOGICAL_HEIGHT - 110; // Visual dotted line
+
+    const getClampedAimDir = (startX, targetX, targetY) => {
+        let dx = targetX - startX;
+        let dy = targetY - FLOOR_Y;
+        let angle = Math.atan2(dy, dx);
+        
+        // Limit angles using DOTTED_LINE_Y intersection with side walls
+        const dyLimit = DOTTED_LINE_Y - FLOOR_Y; // -75
+        const minAngleRight = Math.atan2(dyLimit, LOGICAL_WIDTH - startX);
+        const minAngleLeft = Math.atan2(dyLimit, 0 - startX);
+        
+        if (angle > 0 || angle > minAngleRight) {
+            angle = dx >= 0 ? minAngleRight : minAngleLeft;
+        } else if (angle < minAngleLeft) {
+            angle = minAngleLeft;
+        }
+
+        
+        return {
+            dirX: Math.cos(angle),
+            dirY: Math.sin(angle),
+            dx, dy
+        };
+    };
+
     const GRID_COLS = 7;
     const GRID_ROWS = 10;
     const BLOCK_SIZE = LOGICAL_WIDTH / GRID_COLS;
@@ -520,18 +547,15 @@
     const shoot = () => {
       if (state.status !== 'AIMING' || !state.targetPoint) return;
       
-      const dx = state.targetPoint.x - state.startX;
-      const dy = state.targetPoint.y - LOGICAL_HEIGHT;
-      const dist = Math.hypot(dx, dy);
-      
-      if (dist < 10 || dy > -10) return; 
+      const aim = getClampedAimDir(state.startX, state.targetPoint.x, state.targetPoint.y);
+      if (Math.hypot(aim.dx, aim.dy) < 10) return;
 
-      const vx = (dx / dist) * BALL_SPEED;
-      const vy = (dy / dist) * BALL_SPEED;
+      const vx = aim.dirX * BALL_SPEED;
+      const vy = aim.dirY * BALL_SPEED;
 
       state.balls = Array.from({ length: state.ballsTotal }).map((_, idx) => ({
         x: state.startX,
-        y: LOGICAL_HEIGHT - BALL_RADIUS,
+        y: FLOOR_Y - BALL_RADIUS,
         vx,
         vy,
         active: false,
@@ -562,7 +586,7 @@
              if(b.active || !b.launched) {
                 b.active = false;
                 b.history = [];
-                b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                b.y = FLOOR_Y - BALL_RADIUS;
                 if (state.firstReturnX === null) {
                     state.firstReturnX = b.x;
                 }
@@ -798,6 +822,12 @@
               state.ballsTotal += state.addedBallsNextTurn;
               state.addedBallsNextTurn = 0;
               
+              const bonusCoins = 15;
+              state.totalCoins = (state.totalCoins || 0) + bonusCoins;
+              storage.setItem('dinoCoins', state.totalCoins.toString());
+              
+              state.effects.push({ type: 'eval_text_warp', text: `+${bonusCoins} COINS!`, color: '#fbbf24', timer: 1.5, y: LOGICAL_HEIGHT / 2 - 80 });
+              
               const newRow = generateRow(0, state.score);
               state.blocks.push(...newRow.blocks);
               state.items.push(...newRow.items);
@@ -885,7 +915,7 @@
                  }
              }
 
-             if (b.y + BALL_RADIUS > LOGICAL_HEIGHT) {
+             if (b.vy > 0 && b.y + BALL_RADIUS > DOTTED_LINE_Y) {
                let shouldBounce = false;
                if (state.selectedChar === 'dino' && b.bounceCount < 2) {
                    shouldBounce = true;
@@ -893,17 +923,28 @@
                }
 
                if (shouldBounce) {
-                   b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                   b.y = DOTTED_LINE_Y - BALL_RADIUS;
                    b.vy *= -1;
                } else {
                    b.active = false;
                    b.history = []; // Clear trail
-                   b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                   b.y = FLOOR_Y - BALL_RADIUS;
                    if (state.firstReturnX === null) {
                      state.firstReturnX = b.x;
                    }
                    break;
                }
+             }
+             
+             // Safety fallback
+             if (b.vy > 0 && b.y + BALL_RADIUS > FLOOR_Y) {
+                 b.active = false;
+                 b.history = [];
+                 b.y = FLOOR_Y - BALL_RADIUS;
+                 if (state.firstReturnX === null) {
+                   state.firstReturnX = b.x;
+                 }
+                 break;
              }
 
              // Item Collision
@@ -1108,7 +1149,7 @@
                if (block.type === 'muddy' || block.type === 'slime') {
                    b.active = false;
                    b.history = [];
-                   b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                   b.y = FLOOR_Y - BALL_RADIUS;
                    if (state.firstReturnX === null) state.firstReturnX = b.x;
                    break;
                }
@@ -1194,7 +1235,7 @@
                 if (b.active) {
                     b.active = false;
                     b.history = [];
-                    b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                    b.y = FLOOR_Y - BALL_RADIUS;
                     if (state.firstReturnX === null) state.firstReturnX = b.x;
                 }
             }
@@ -1558,18 +1599,17 @@
 
       // Aiming Line (Laser pointer)
       if (state.status === 'AIMING' && state.targetPoint) {
-          const dx = state.targetPoint.x - state.startX;
-          const dy = state.targetPoint.y - LOGICAL_HEIGHT;
+          const aim = getClampedAimDir(state.startX, state.targetPoint.x, state.targetPoint.y);
           
-          if (dy < -10) {
+          if (Math.hypot(aim.dx, aim.dy) >= 10) {
               const length = 2000;
-              const dist = Math.hypot(dx, dy);
-              const dirX = dx / dist;
-              const dirY = dy / dist;
+              const dist = Math.hypot(aim.dx, aim.dy);
+              const dirX = aim.dirX;
+              const dirY = aim.dirY;
               
               ctx.beginPath();
-              ctx.moveTo(state.startX, LOGICAL_HEIGHT - 30);
-              ctx.lineTo(state.startX + dirX * length, LOGICAL_HEIGHT - 30 + dirY * length);
+              ctx.moveTo(state.startX, FLOOR_Y);
+              ctx.lineTo(state.startX + dirX * length, FLOOR_Y + dirY * length);
               ctx.strokeStyle = 'rgba(216, 180, 254, 0.7)';
               ctx.lineWidth = 6;
               ctx.setLineDash([20, 15]);
@@ -1577,12 +1617,22 @@
               ctx.setLineDash([]);
               
               ctx.beginPath();
-              ctx.arc(state.startX + dirX * Math.min(dist, length), LOGICAL_HEIGHT - 30 + dirY * Math.min(dist, length), 15, 0, Math.PI*2);
+              ctx.arc(state.startX + dirX * Math.min(dist, length), FLOOR_Y + dirY * Math.min(dist, length), 15, 0, Math.PI*2);
               ctx.strokeStyle = '#fff';
               ctx.lineWidth = 3;
               ctx.stroke();
           }
       }
+
+      // Draw dotted floor
+      ctx.beginPath();
+      ctx.moveTo(0, DOTTED_LINE_Y);
+      ctx.lineTo(LOGICAL_WIDTH, DOTTED_LINE_Y);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; // Increased opacity
+      ctx.lineWidth = 3; // Increased thickness
+      ctx.setLineDash([15, 10]);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
       state.particles.forEach(p => {
           ctx.save();
