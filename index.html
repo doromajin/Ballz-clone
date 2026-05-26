@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.json">
+  <title>DinoBallz Clone</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', system-ui, sans-serif;
+      background-color: #0f172a; color: #fff;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+    }
+
+    #root {
+      width: 100%; height: 100vh; display: flex;
+      justify-content: center; align-items: center;
+      background: #020617;
+    }
+
+    .game-container {
+      position: relative; width: 100%; max-width: 500px;
+      height: 100%; max-height: 100vh; display: flex;
+      justify-content: center; align-items: center; user-select: none;
+      box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    }
+
+    .game-canvas {
+      width: 100%; height: auto; 
+      max-width: 100%; max-height: 100vh;
+      aspect-ratio: 7 / 10;
+      background-color: #0f172a;
+      touch-action: none;
+    }
+
+    .ui-layer {
+      position: absolute; top: 0; left: 0; width: 100%;
+      display: flex; justify-content: space-between; align-items: center; 
+      padding: max(15px, env(safe-area-inset-top)) 20px 15px 20px;
+      pointer-events: none;
+    }
+
+    .top-bar {
+      display: flex; width: 100%; justify-content: space-between;
+      align-items: center;
+    }
+
+    .scores {
+      display: flex; gap: 40px;
+    }
+
+    .stat-box { display: flex; flex-direction: column; align-items: flex-start; }
+
+    .stat-label { font-size: 0.8rem; color: #94a3b8; font-weight: 900; letter-spacing: 0.05em; text-shadow: 0 1px 2px #000; }
+
+    .stat-value { font-size: 2.2rem; color: #fff; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.8); line-height: 1.1; }
+
+    .game-over-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(2, 6, 23, 0.9); backdrop-filter: blur(8px);
+      display: none; flex-direction: column; justify-content: center;
+      align-items: center; z-index: 10;
+      animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .game-over-overlay.active { display: flex; }
+
+    .game-over-title {
+      font-size: 4rem; font-weight: 900; margin-bottom: 1rem;
+      background: linear-gradient(to right, #60a5fa, #c084fc, #ec4899);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 8px rgba(192, 132, 252, 0.5));
+    }
+
+    .character-select {
+      background: rgba(15, 23, 42, 0.8); border: 2px solid #334155;
+      border-radius: 16px; padding: 20px; width: 90%; max-width: 400px;
+      margin-bottom: 2rem; text-align: center;
+    }
+
+    .char-buttons {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+    }
+
+    .char-btn {
+      background: #1e293b; color: #cbd5e1; border: 2px solid #475569;
+      padding: 10px 15px; border-radius: 8px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; font-size: 0.9rem;
+    }
+
+    .char-btn.active {
+      background: #0ea5e9; color: #fff; border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(14, 165, 233, 0.5); transform: scale(1.05);
+    }
+
+    .retry-button {
+      background: linear-gradient(135deg, #0ea5e9, #3b82f6); color: white;
+      border: none; padding: 1rem 3.5rem; font-size: 1.8rem; font-weight: 900;
+      letter-spacing: 0.1em; border-radius: 9999px; cursor: pointer;
+      box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.4);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .retry-button:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.5); }
+
+    .retry-button:active { transform: translateY(2px) scale(0.95); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="game-container">
+      <canvas id="gameCanvas" width="700" height="1000" class="game-canvas"></canvas>
+      <div class="ui-layer">
+        <div class="top-bar">
+          <div class="scores">
+            <div class="stat-box">
+              <span class="stat-label">SCORE</span>
+              <span class="stat-value" id="scoreText">1</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">HIGH SCORE</span>
+              <span class="stat-value" id="highScoreText" style="color: #facc15;">1</span>
+            </div>
+          </div>
+          <button id="menuBtn" style="pointer-events: auto; background: rgba(0,0,0,0.6); border: 2px solid #334155; color: #fff; font-weight: bold; border-radius: 12px; padding: 10px 18px; cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+            MENU
+          </button>
+        </div>
+      </div>
+      
+      <!-- Start / Game Over Screen -->
+      <div class="game-over-overlay active" id="gameOverOverlay">
+        <h2 class="game-over-title" id="overlayTitle">DINO BALLZ</h2>
+        
+        <div class="character-select">
+          <p style="margin-bottom: 15px; color: #94a3b8; font-size: 0.9rem;">CHARACTER SELECT</p>
+          <div class="char-buttons" id="charButtons">
+            <button class="char-btn active" data-char="original">オリジナル</button>
+            <button class="char-btn" data-char="orange">オレンジ</button>
+            <button class="char-btn" data-char="reaper">死神</button>
+            <button class="char-btn" data-char="punch">デカパンチ</button>
+            <button class="char-btn" data-char="dino">ディノ</button>
+          </div>
+        <div style="margin: 1.5rem 0;">
+          <input type="text" id="usernameInput" maxlength="12" placeholder="Player Name" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 0.5rem 1rem; color: #fff; font-size: 1.2rem; text-align: center; width: 80%; max-width: 200px; outline: none; font-family: 'Nunito', sans-serif;">
+        </div>
+        </div>
+
+        <button class="retry-button" id="rankingBtn" style="background: linear-gradient(135deg, #a855f7, #9333ea); box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.4); margin-bottom: 1rem; font-size: 1.2rem; padding: 1rem;">RANKING</button>
+        <button class="retry-button" id="retryButton">START</button>
+      </div>
+
+      <!-- Pause Overlay -->
+      <div class="game-over-overlay" id="pauseOverlay">
+        <h2 class="game-over-title" style="background: linear-gradient(to right, #34d399, #3b82f6); -webkit-background-clip: text; font-size: 3.5rem;">PAUSED</h2>
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; width: 80%; max-width: 300px;">
+            <button class="retry-button" id="resumeBtn" style="padding: 1rem; font-size: 1.2rem; border-radius: 12px;">RESUME</button>
+            <button class="retry-button" id="quitBtn" style="background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.4); padding: 1rem; font-size: 1.2rem; border-radius: 12px;">CHAR SELECT</button>
+        </div>
+      </div>
+
+      <!-- Ranking Overlay -->
+      <div class="game-over-overlay" id="rankingOverlay" style="justify-content: flex-start; padding-top: 4rem;">
+        <h2 class="game-over-title" style="background: linear-gradient(to right, #facc15, #f59e0b); -webkit-background-clip: text; font-size: 3rem; margin-bottom: 1rem;">LEADERBOARD</h2>
+        
+        <div id="rankingList" style="width: 90%; max-width: 400px; height: 60%; overflow-y: auto; background: rgba(0,0,0,0.5); border-radius: 16px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);">
+            <!-- Ranking items will be injected here -->
+        </div>
+
+        <button class="retry-button" id="closeRankingBtn" style="padding: 1rem 3rem; font-size: 1.2rem; border-radius: 12px; width: auto;">BACK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const storage = {
+      getItem: (key) => { try { return localStorage.getItem(key); } catch(e) { return null; } },
+      setItem: (key, val) => { try { localStorage.setItem(key, val); } catch(e) {} }
+    };
+
+    const LOGICAL_WIDTH = 700;
+    const LOGICAL_HEIGHT = 1000;
+    const GRID_COLS = 7;
+    const GRID_ROWS = 10;
+    const BLOCK_SIZE = LOGICAL_WIDTH / GRID_COLS;
+    const BALL_RADIUS = 10;
+    const BALL_SPEED = 2000;
+    const SHOOT_DELAY = 0.05;
+
+    let highScore = storage.getItem('dinoHighScore') || 1;
+
+    const generateRow = (row, score) => {
+      const blocks = [];
+      const items = [];
+      
+      if (score > 0 && score % 50 === 0) {
+          blocks.push({
+              id: Math.random().toString(36).substring(7),
+              col: 2,
+              row,
+              hp: 1500 + score * 20,
+              maxHp: 1500 + score * 20,
+              type: 'boss',
+              shape: 'square',
+              width: 3,
+              isTransparent: false,
+              hitTimer: 0
+          });
+          return { blocks, items };
+      }
+      
+      let blockCols = [];
+      for (let c = 0; c < GRID_COLS; c++) {
+         if (Math.random() > 0.5) blockCols.push(c);
+      }
+      if (blockCols.length === 0) {
+         blockCols.push(Math.floor(Math.random() * GRID_COLS));
+      }
+
+      for (let c = 0; c < GRID_COLS; c++) {
+        if (blockCols.includes(c)) {
+          const hp = score + Math.floor(Math.random() * (score * 0.5));
+          let type = 'normal';
+          let shape = 'square';
+          let shield = null;
+
+          const typeRand = Math.random();
+          if (score > 10) {
+              if (typeRand < 0.05) type = 'shield';
+              else if (typeRand < 0.10) type = 'ghost';
+              else if (typeRand < 0.15) type = 'muddy';
+          }
+
+          if (score >= 200 && Math.random() < 0.05) {
+              type = 'iron';
+          }
+
+          if (type === 'iron' || type === 'shield') {
+              shape = 'square'; // Force square for iron and shield
+          } else if (Math.random() < 0.20) {
+              const shapes = ['triangle_tl', 'triangle_tr', 'triangle_bl', 'triangle_br'];
+              shape = shapes[Math.floor(Math.random() * shapes.length)];
+          }
+
+          let actualHp = hp;
+          if (type === 'iron') {
+              actualHp = 700 + Math.floor(Math.random() * 300);
+          }
+          
+          if (type === 'shield') {
+              const sides = ['top', 'right', 'bottom', 'left'];
+              shield = sides[Math.floor(Math.random() * sides.length)];
+          }
+
+          blocks.push({ id: Math.random().toString(36).substring(7), col: c, row, hp: actualHp, maxHp: actualHp, type, shape, shield, isTransparent: false, hitTimer: 0 });
+        } else if (Math.random() < 0.25) { 
+          let type = 'add_ball';
+          const itemRand = Math.random();
+          if (score > 5) {
+             if (itemRand < 0.15) type = 'thunder_v';
+             else if (itemRand < 0.3) type = 'thunder_h';
+             else if (itemRand < 0.45) type = 'split';
+          }
+          items.push({ id: Math.random().toString(36).substring(7), col: c, row, type, collected: false, triggered: false });
+        }
+      }
+      return { blocks, items };
+    };
+
+    let state = {
+      status: 'START_SCREEN',
+      previousStatus: null,
+      selectedChar: storage.getItem('dinoSelectedChar') || 'original',
+      particles: [],
+      warpBlocks: [],
+      effects: [],
+      blocks: [],
+      items: [],
+      balls: [],
+      score: 0,
+      bossWarningTimer: 0,
+      bossWarningText: '',
+      ballsTotal: 1,
+      addedBallsNextTurn: 0,
+      startX: LOGICAL_WIDTH / 2,
+      firstReturnX: null,
+      targetPoint: null,
+      shootTimer: 0,
+      ballsLaunched: 0,
+      blocksCountAtStart: 0,
+      warpCounter: 0,
+      warpTimer: 0,
+      turnTimer: 0,
+      speedMult: 1.0,
+      username: storage.getItem('dinoUsername') || 'Player',
+      lastPlayTimestamp: null
+    };
+
+    let leaderboard = JSON.parse(storage.getItem('dinoLeaderboard'));
+    if (!leaderboard) {
+        leaderboard = [];
+        storage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
+    }
+    
+    // Clean up any old dummy data if it exists from previous versions
+    leaderboard = leaderboard.filter(entry => entry.timestamp);
+    storage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreText = document.getElementById('scoreText');
+    const highScoreText = document.getElementById('highScoreText');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const retryButton = document.getElementById('retryButton');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const charButtons = document.querySelectorAll('.char-btn');
+    const menuBtn = document.getElementById('menuBtn');
+    const pauseOverlay = document.getElementById('pauseOverlay');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const quitBtn = document.getElementById('quitBtn');
+
+    const updateCharSelectionUI = () => {
+      charButtons.forEach(b => {
+         if (b.dataset.char === state.selectedChar) {
+             b.classList.add('active');
+         } else {
+             b.classList.remove('active');
+         }
+      });
+    };
+    updateCharSelectionUI();
+
+    const usernameInput = document.getElementById('usernameInput');
+    usernameInput.value = state.username;
+    usernameInput.addEventListener('input', (e) => {
+        state.username = e.target.value || 'Player';
+        storage.setItem('dinoUsername', state.username);
+    });
+
+    const rankingOverlay = document.getElementById('rankingOverlay');
+    const rankingList = document.getElementById('rankingList');
+    const rankingBtn = document.getElementById('rankingBtn');
+    const closeRankingBtn = document.getElementById('closeRankingBtn');
+
+    rankingBtn.addEventListener('click', () => {
+        if (leaderboard.length === 0) {
+            rankingList.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 2rem;">No players yet.<br>Be the first!</div>';
+        }
+        
+        leaderboard.forEach((entry, index) => {
+            const item = document.createElement('div');
+            const isMe = entry.timestamp && entry.timestamp === state.lastPlayTimestamp;
+            item.style.display = 'flex';
+            item.style.justifyContent = 'space-between';
+            item.style.padding = '0.8rem 1rem';
+            item.style.borderRadius = '8px';
+            item.style.background = isMe ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+            item.style.border = isMe ? '1px solid #facc15' : 'none';
+            item.style.boxShadow = isMe ? '0 0 10px rgba(250, 204, 21, 0.5)' : 'none';
+            
+            let rankColor = '#94a3b8';
+            if (index === 0) rankColor = '#facc15'; 
+            else if (index === 1) rankColor = '#e2e8f0'; 
+            else if (index === 2) rankColor = '#b45309'; 
+            
+            item.innerHTML = `
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span style="color: ${rankColor}; font-weight: 900; font-size: 1.2rem; width: 30px;">#${index + 1}</span>
+                    <span style="color: #fff; font-weight: 700; font-size: 1.1rem;">${entry.name}</span>
+                </div>
+                <span style="color: #38bdf8; font-weight: 900; font-size: 1.2rem;">Lv.${entry.score}</span>
+            `;
+            rankingList.appendChild(item);
+        });
+        
+        gameOverOverlay.classList.remove('active');
+        pauseOverlay.classList.remove('active');
+        rankingOverlay.classList.add('active');
+    });
+
+    closeRankingBtn.addEventListener('click', () => {
+        rankingOverlay.classList.remove('active');
+        updateUI(); 
+    });
+
+    menuBtn.addEventListener('click', () => {
+      if (state.status !== 'START_SCREEN' && state.status !== 'GAME_OVER' && state.status !== 'PAUSED') {
+        state.previousStatus = state.status;
+        state.status = 'PAUSED';
+        updateUI();
+      }
+    });
+
+    resumeBtn.addEventListener('click', () => {
+      if (state.status === 'PAUSED') {
+        state.status = state.previousStatus;
+        updateUI();
+      }
+    });
+
+    quitBtn.addEventListener('click', () => {
+      state.status = 'START_SCREEN';
+      updateUI();
+    });
+
+    charButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.selectedChar = btn.dataset.char;
+        storage.setItem('dinoSelectedChar', state.selectedChar);
+        updateCharSelectionUI();
+      });
+    });
+
+    const updateUI = () => {
+      scoreText.innerText = state.score;
+      highScoreText.innerText = highScore;
+      if (state.status === 'GAME_OVER' || state.status === 'START_SCREEN') {
+        overlayTitle.innerText = state.status === 'GAME_OVER' ? 'GAME OVER' : 'DINO BALLZ';
+        gameOverOverlay.classList.add('active');
+        pauseOverlay.classList.remove('active');
+        rankingOverlay.classList.remove('active');
+      } else if (state.status === 'PAUSED') {
+        gameOverOverlay.classList.remove('active');
+        pauseOverlay.classList.add('active');
+        rankingOverlay.classList.remove('active');
+      } else {
+        gameOverOverlay.classList.remove('active');
+        pauseOverlay.classList.remove('active');
+        rankingOverlay.classList.remove('active');
+      }
+    };
+
+    const setTargetPoint = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = LOGICAL_WIDTH / rect.width;
+      const scaleY = LOGICAL_HEIGHT / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    };
+
+    const shoot = () => {
+      if (state.status !== 'AIMING' || !state.targetPoint) return;
+      
+      const dx = state.targetPoint.x - state.startX;
+      const dy = state.targetPoint.y - LOGICAL_HEIGHT;
+      const dist = Math.hypot(dx, dy);
+      
+      if (dist < 10 || dy > -10) return; 
+
+      const vx = (dx / dist) * BALL_SPEED;
+      const vy = (dy / dist) * BALL_SPEED;
+
+      state.balls = Array.from({ length: state.ballsTotal }).map((_, idx) => ({
+        x: state.startX,
+        y: LOGICAL_HEIGHT - BALL_RADIUS,
+        vx,
+        vy,
+        active: false,
+        launched: false,
+        isLeader: idx === 0,
+        bounceCount: 0,
+        history: [], // For ball trails
+        hitCount: 0
+      }));
+
+      state.status = 'SHOOTING';
+      state.shootTimer = 0;
+      state.ballsLaunched = 0;
+      state.firstReturnX = null;
+      state.targetPoint = null;
+      state.blocksCountAtStart = state.blocks.length;
+      state.turnTimer = 0;
+      state.speedMult = 1.0;
+      state.bossDefeatedThisTurn = false;
+    };
+
+    let isDragging = false; 
+
+    const handleInputDown = (pt) => {
+      // Fast drop button logic
+      if ((state.status === 'SHOOTING' || state.status === 'RESOLVING') && pt.y > LOGICAL_HEIGHT - 120 && pt.x > LOGICAL_WIDTH - 120) {
+          state.balls.forEach(b => {
+             if(b.active || !b.launched) {
+                b.active = false;
+                b.history = [];
+                b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                if (state.firstReturnX === null) {
+                    state.firstReturnX = b.x;
+                }
+             }
+          });
+          state.ballsLaunched = state.ballsTotal;
+          state.status = 'RESOLVING';
+          return;
+      }
+
+      if (state.status === 'AIMING') {
+        isDragging = true;
+        state.targetPoint = pt;
+      }
+    };
+
+    const handleInputMove = (pt) => {
+      if (state.status !== 'AIMING' || !isDragging) return;
+      state.targetPoint = pt;
+    };
+
+    const handleInputUp = () => {
+      if (state.status === 'AIMING' && isDragging) {
+        shoot();
+      }
+      isDragging = false;
+    };
+
+    // Mouse Events
+    canvas.addEventListener('mousedown', (e) => {
+       handleInputDown(setTargetPoint(e));
+    });
+    canvas.addEventListener('mousemove', (e) => {
+       if (e.buttons !== 1) return;
+       handleInputMove(setTargetPoint(e));
+    });
+    window.addEventListener('mouseup', () => {
+       handleInputUp();
+    });
+
+    // Touch Events
+    canvas.addEventListener('touchstart', (e) => {
+       if (e.cancelable) e.preventDefault();
+       handleInputDown(setTargetPoint(e.touches[0]));
+    }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+       if (e.cancelable) e.preventDefault();
+       handleInputMove(setTargetPoint(e.touches[0]));
+    }, { passive: false });
+    window.addEventListener('touchend', (e) => {
+       handleInputUp();
+    });
+
+    retryButton.addEventListener('click', () => {
+      const initRow = generateRow(1, 1);
+      const startingBalls = state.selectedChar === 'orange' ? 11 : 1;
+      
+      state = {
+        selectedChar: state.selectedChar,
+        status: 'AIMING',
+        particles: [],
+        warpBlocks: [],
+        balls: [],
+        blocks: initRow.blocks,
+        items: initRow.items,
+        effects: [],
+        score: 1,
+        bossWarningTimer: 0,
+        bossWarningText: '',
+        ballsTotal: startingBalls,
+        addedBallsNextTurn: 0,
+        startX: LOGICAL_WIDTH / 2,
+        firstReturnX: null,
+        targetPoint: null,
+        shootTimer: 0,
+        ballsLaunched: 0,
+        blocksCountAtStart: 0,
+        warpCounter: 0,
+        warpTimer: 0,
+        turnTimer: 0,
+        speedMult: 1.0,
+        bossDefeatedThisTurn: false,
+        username: state.username,
+        lastPlayTimestamp: state.lastPlayTimestamp
+      };
+      updateUI();
+    });
+
+    const triggerThunder = (item) => {
+        let existingFlash = state.effects.find(e => e.type === 'thunder_flash');
+        if (existingFlash) {
+            existingFlash.timer = 0.3;
+        } else {
+            state.effects.push({ type: 'thunder_flash', timer: 0.3 });
+        }
+        
+        const thunderDamage = 50 + state.score * 2;
+        const isVertical = item.type === 'thunder_v';
+        const effectType = item.type;
+        const ex = item.col * BLOCK_SIZE + BLOCK_SIZE / 2;
+        const ey = item.row * BLOCK_SIZE + BLOCK_SIZE / 2;
+        
+        let existingStrike = state.effects.find(e => e.type === effectType && e.x === ex && e.y === ey);
+        if (existingStrike) {
+            existingStrike.timer = 0.8;
+        } else {
+            state.effects.push({
+                type: effectType,
+                x: ex,
+                y: ey,
+                timer: 0.8
+            });
+        }
+
+        if (item.type === 'thunder_v') {
+            state.blocks.forEach(b => {
+                if (b.type === 'ghost' && b.isTransparent) return;
+                if (Math.abs(b.col - item.col) < 0.5) {
+                    b.hp -= thunderDamage;
+                    b.hitTimer = 0.15;
+                }
+            });
+        } else {
+            state.blocks.forEach(b => {
+                if (b.type === 'ghost' && b.isTransparent) return;
+                if (Math.abs(b.row - item.row) < 0.5) {
+                    b.hp -= thunderDamage;
+                    b.hitTimer = 0.15;
+                }
+            });
+        }
+    };
+
+    const spawnParticles = (x, y, color, count = 15) => {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 400 + 100;
+            state.particles.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 200,
+                life: Math.random() * 0.4 + 0.2,
+                maxLife: 0.6,
+                color,
+                size: Math.random() * 6 + 3
+            });
+        }
+    };
+
+    const tick = (dt, time = 0) => {
+      if (state.bossWarningTimer > 0) state.bossWarningTimer -= dt;
+      if (state.status === 'GAME_OVER' || state.status === 'START_SCREEN' || state.status === 'PAUSED') return;
+
+      if (state.status === 'AIMING') {
+          state.blocks.forEach(b => {
+              const blockCenterX = b.col * BLOCK_SIZE + BLOCK_SIZE / 2;
+              if (Math.abs(blockCenterX - state.startX) < BLOCK_SIZE * 0.8) {
+                  if (b.shape === 'triangle_tl') b.shape = 'triangle_bl';
+                  else if (b.shape === 'triangle_tr') b.shape = 'triangle_br';
+              }
+          });
+      }
+
+      if (state.status === 'WARPING') {
+          state.warpBlocks.forEach(b => {
+              b.y += 1500 * dt;
+          });
+          
+          state.warpBlocks = state.warpBlocks.filter(b => {
+              if (b.y >= LOGICAL_HEIGHT / 2) {
+                  spawnParticles(b.x, LOGICAL_HEIGHT / 2, b.color, b.isItem ? 6 : 12);
+                  if (b.isItem && b.type === 'add_ball') {
+                      state.addedBallsNextTurn++;
+                  }
+                  return false; 
+              }
+              return true;
+          });
+
+          state.warpTimer += dt;
+          while (state.warpTimer >= 0.1 && state.warpCounter < 10) {
+              state.warpTimer -= 0.1;
+              state.score++;
+              
+              if (state.score > 0 && state.score % 50 === 0) {
+                  // Reached a boss level. Stop warping exactly at 49.
+                  state.score--;
+                  state.warpCounter = 10; // End loop early
+              } else {
+                  state.warpCounter++;
+              }
+              if (state.score > highScore) {
+                 highScore = state.score;
+                 storage.setItem('dinoHighScore', highScore);
+              }
+              
+              const newRow = generateRow(0, state.score);
+              newRow.blocks.forEach(b => {
+                  let mainColor = '#38bdf8';
+                  if (b.type === 'iron') mainColor = '#94a3b8';
+                  else if (b.type === 'muddy' || b.type === 'slime') mainColor = '#4ade80';
+                  else if (b.type === 'ghost') mainColor = '#c084fc';
+                  else mainColor = `hsl(${Math.max(0, 200 - b.hp * 2)}, 80%, 60%)`;
+                  
+                  state.warpBlocks.push({
+                      x: b.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                      y: -BLOCK_SIZE,
+                      hp: b.hp,
+                      color: mainColor,
+                      type: b.type,
+                      isItem: false
+                  });
+              });
+
+              newRow.items.forEach(i => {
+                  state.warpBlocks.push({
+                      x: i.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                      y: -BLOCK_SIZE,
+                      hp: '',
+                      color: '#facc15',
+                      type: i.type,
+                      isItem: true
+                  });
+              });
+
+              updateUI();
+          }
+          
+          if (state.warpCounter >= 10 && state.warpBlocks.length === 0) {
+              state.startX = state.firstReturnX !== null ? state.firstReturnX : state.startX;
+              state.ballsTotal += state.addedBallsNextTurn;
+              state.addedBallsNextTurn = 0;
+              
+              const newRow = generateRow(0, state.score);
+              state.blocks.push(...newRow.blocks);
+              state.items.push(...newRow.items);
+              state.status = 'AIMING';
+              
+              if (state.score > 0 && state.score % 50 === 49) {
+                  state.bossWarningTimer = 2.0;
+                  state.bossWarningText = 'BOSS INCOMING';
+              } else if (state.score > 0 && state.score % 50 === 0) {
+                  state.bossWarningTimer = 2.0;
+                  state.bossWarningText = 'BOSS APPEARED!';
+              }
+              state.balls = [];
+              state.firstReturnX = null;
+              updateUI();
+          }
+          return; 
+      }
+
+      if (state.status === 'SHOOTING') {
+        state.shootTimer += dt * state.speedMult;
+        while (state.shootTimer > SHOOT_DELAY && state.ballsLaunched < state.ballsTotal) {
+          state.balls[state.ballsLaunched].active = true;
+          state.balls[state.ballsLaunched].launched = true;
+          state.ballsLaunched++;
+          state.shootTimer -= SHOOT_DELAY;
+        }
+        if (state.ballsLaunched === state.ballsTotal) {
+          state.status = 'RESOLVING';
+        }
+      }
+
+      if (state.status === 'SHOOTING' || state.status === 'RESOLVING') {
+         state.turnTimer += dt;
+         if (state.speedMult < 2.5) {
+            state.speedMult = Math.min(2.5, state.speedMult + dt * 0.3);
+         }
+      }
+
+      state.particles.forEach(p => {
+          p.x += p.vx * dt * state.speedMult;
+          p.y += p.vy * dt * state.speedMult;
+          p.vy += 1500 * dt * state.speedMult;
+          p.life -= dt * state.speedMult;
+      });
+      state.particles = state.particles.filter(p => p.life > 0);
+
+      for (let i = 0; i < state.blocks.length; i++) {
+          if (state.blocks[i].hitTimer > 0) state.blocks[i].hitTimer -= dt;
+      }
+
+      if (state.status === 'SHOOTING' || state.status === 'RESOLVING') {
+        let activeCount = 0;
+
+        for (let i = 0; i < state.balls.length; i++) {
+          const b = state.balls[i];
+          if (!b.active) continue;
+
+          activeCount++;
+          
+          b.history.push({x: b.x, y: b.y});
+          if (b.history.length > 5) b.history.shift();
+
+        let subSteps = Math.ceil(2 * state.speedMult); 
+        let subDt = (dt * state.speedMult) / subSteps;
+        
+        let bounceCountThisFrame = 0;
+        subStepLoop:
+        for (let s = 0; s < subSteps; s++) {
+           if (!b.active) break;
+           b.x += b.vx * subDt;
+           b.y += b.vy * subDt;
+
+             let wallBounced = false;
+             if (b.x - BALL_RADIUS < 0) { b.x = BALL_RADIUS; b.vx *= -1; b.hitCount++; wallBounced = true; }
+             if (b.x + BALL_RADIUS > LOGICAL_WIDTH) { b.x = LOGICAL_WIDTH - BALL_RADIUS; b.vx *= -1; b.hitCount++; wallBounced = true; }
+             if (b.y - BALL_RADIUS < 0) { b.y = BALL_RADIUS; b.vy *= -1; b.hitCount++; wallBounced = true; }
+
+             if (wallBounced) {
+                 bounceCountThisFrame++;
+                 if (bounceCountThisFrame >= 5) {
+                     b.x += (Math.random() - 0.5) * 1.0;
+                     b.y += (Math.random() - 0.5) * 1.0;
+                     break subStepLoop;
+                 }
+             }
+
+             if (b.y + BALL_RADIUS > LOGICAL_HEIGHT) {
+               let shouldBounce = false;
+               if (state.selectedChar === 'dino' && b.bounceCount < 2) {
+                   shouldBounce = true;
+                   b.bounceCount++;
+               }
+
+               if (shouldBounce) {
+                   b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                   b.vy *= -1;
+               } else {
+                   b.active = false;
+                   b.history = []; // Clear trail
+                   b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                   if (state.firstReturnX === null) {
+                     state.firstReturnX = b.x;
+                   }
+                   break;
+               }
+             }
+
+             // Item Collision
+             if (!b.lastItems) b.lastItems = new Set();
+             let currentItems = new Set();
+
+             for (let j = 0; j < state.items.length; j++) {
+                const item = state.items[j];
+                if (item.collected) continue; 
+                
+                const floatOffset = Math.sin(time / 200) * 5;
+                const ix = item.col * BLOCK_SIZE + BLOCK_SIZE / 2;
+                const iy = item.row * BLOCK_SIZE + BLOCK_SIZE / 2 + floatOffset;
+                const itemRadius = 15;
+                const distSq = (b.x - ix) ** 2 + (b.y - iy) ** 2;
+                
+                if (distSq < (BALL_RADIUS + itemRadius) ** 2) {
+                    currentItems.add(item.id);
+                    if (b.lastItems.has(item.id)) continue; // Already processed this intersection
+
+                    if (item.type === 'split') {
+                        item.triggered = true; // Flags for removal at turn end
+                        
+                        if (state.balls.length < 300) {
+                            const angle = Math.atan2(b.vy, b.vx);
+                            const speed = BALL_SPEED;
+                            const jitter1 = (Math.PI / 6) + Math.random() * (Math.PI / 6);
+                            const jitter2 = (Math.PI / 6) + Math.random() * (Math.PI / 6);
+                            let angle1 = angle + jitter1;
+                            let angle2 = angle - jitter2;
+                            
+                            if (Math.abs(Math.sin(angle1)) < 0.05) angle1 += 0.1;
+                            if (Math.abs(Math.sin(angle2)) < 0.05) angle2 -= 0.1;
+                            
+                            const newLastItems = new Set([item.id]);
+                            state.balls.push({
+                                x: b.x, y: b.y,
+                                vx: Math.cos(angle1) * speed,
+                                vy: Math.sin(angle1) * speed,
+                                active: true, launched: true, history: [],
+                                isLeader: false,
+                                lastItems: newLastItems,
+                                isSplitClone: true
+                            });
+                            
+                            state.balls.push({
+                                x: b.x, y: b.y,
+                                vx: Math.cos(angle2) * speed,
+                                vy: Math.sin(angle2) * speed,
+                                active: true, launched: true, history: [],
+                                isLeader: false,
+                                lastItems: newLastItems,
+                                isSplitClone: true
+                            });
+                        }
+                    } else if (item.type === 'thunder_v' || item.type === 'thunder_h') {
+                        item.triggered = true; // Flags for removal at turn end
+                        triggerThunder(item);
+                    } else if (item.type === 'add_ball') {
+                        item.collected = true; // Consumed instantly
+                        state.addedBallsNextTurn++;
+                    }
+                }
+             }
+             b.lastItems = currentItems;
+
+             // Block Collision
+             for (let j = 0; j < state.blocks.length; j++) {
+               const block = state.blocks[j];
+               if (block.hp <= 0 || block.isTransparent) continue;
+
+               const blockLeft = block.col * BLOCK_SIZE;
+               const blockRight = blockLeft + BLOCK_SIZE * (block.width || 1);
+               const blockTop = block.row * BLOCK_SIZE;
+               const blockBottom = blockTop + BLOCK_SIZE;
+
+               if (b.x + BALL_RADIUS < blockLeft || b.x - BALL_RADIUS > blockRight ||
+                   b.y + BALL_RADIUS < blockTop || b.y - BALL_RADIUS > blockBottom) {
+                   continue;
+               }
+
+               let hitHypotenuse = false;
+               let isColliding = false;
+
+               if (block.shape && block.shape !== 'square') {
+                   const rx = b.x - blockLeft;
+                   const ry = b.y - blockTop;
+                   const w = BLOCK_SIZE;
+                   const rDiag = BALL_RADIUS * 1.4142; 
+
+                   if (block.shape === 'triangle_tl') {
+                       if (rx + ry > w && rx + ry - w < rDiag) {
+                           hitHypotenuse = true; isColliding = true;
+                           const distOut = rDiag - (rx + ry - w);
+                           b.x += distOut / 2; b.y += distOut / 2;
+                       } else if (rx + ry <= w) isColliding = true;
+                   } else if (block.shape === 'triangle_tr') {
+                       if (ry > rx && ry - rx < rDiag) {
+                           hitHypotenuse = true; isColliding = true;
+                           const distOut = rDiag - (ry - rx);
+                           b.x -= distOut / 2; b.y += distOut / 2;
+                       } else if (ry <= rx) isColliding = true;
+                   } else if (block.shape === 'triangle_bl') {
+                       if (rx > ry && rx - ry < rDiag) {
+                           hitHypotenuse = true; isColliding = true;
+                           const distOut = rDiag - (rx - ry);
+                           b.x += distOut / 2; b.y -= distOut / 2;
+                       } else if (rx <= ry) isColliding = true;
+                   } else if (block.shape === 'triangle_br') {
+                       if (rx + ry < w && w - (rx + ry) < rDiag) {
+                           hitHypotenuse = true; isColliding = true;
+                           const distOut = rDiag - (w - (rx + ry));
+                           b.x -= distOut / 2; b.y -= distOut / 2;
+                       } else if (rx + ry >= w) isColliding = true;
+                   }
+                   
+                   if (!isColliding) continue;
+               } else {
+                   isColliding = true;
+               }
+
+               const closestX = Math.max(blockLeft, Math.min(b.x, blockRight));
+               const closestY = Math.max(blockTop, Math.min(b.y, blockBottom));
+               const distanceX = b.x - closestX;
+               const distanceY = b.y - closestY;
+               const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+
+               if (!hitHypotenuse && distanceSquared >= BALL_RADIUS * BALL_RADIUS) {
+                   continue;
+               }
+                 
+               let damage = 1;
+               if (state.selectedChar === 'punch') damage = 2; 
+               if (state.selectedChar === 'dino' && b.isLeader) damage = 4; 
+
+               let multiplier = 1;
+               if (b.hitCount >= 200) multiplier = 5;
+               else if (b.hitCount >= 100) multiplier = 2;
+               
+               damage *= multiplier;
+
+               let instantKill = false;
+               if (state.selectedChar === 'reaper' && Math.random() < 0.05) { 
+                   instantKill = true;
+               }
+
+               let hitEdge = null;
+               if (!hitHypotenuse) {
+                   if (Math.abs(distanceX) > Math.abs(distanceY)) {
+                       hitEdge = distanceX > 0 ? 'right' : 'left';
+                   } else {
+                       hitEdge = distanceY > 0 ? 'bottom' : 'top';
+                   }
+               }
+
+               if (block.shield && block.shield === hitEdge) {
+                   damage = 0;
+                   instantKill = false;
+               }
+
+               const prevHp = block.hp;
+               if (instantKill) {
+                   block.hp = 0;
+               } else {
+                   block.hp -= damage;
+               }
+               
+               b.hitCount++;
+               
+               if (multiplier > 1 && damage > 0 && block.hp < prevHp) {
+                   state.effects.push({
+                       type: 'damage_popup',
+                       text: damage.toString(),
+                       x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                       y: closestY - 20,
+                       timer: 0.6,
+                       scale: multiplier === 5 ? 1.5 : 1.2
+                   });
+               }
+               
+               if (damage > 0 || instantKill) {
+                   block.hitTimer = 0.1; // Trigger flash only if damaged
+               }
+               
+               if (block.type === 'muddy' || block.type === 'slime') {
+                   b.active = false;
+                   b.history = [];
+                   b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                   if (state.firstReturnX === null) state.firstReturnX = b.x;
+                   break;
+               }
+
+               let penetrate = false;
+               if (state.selectedChar === 'punch' && prevHp <= damage) {
+                   penetrate = true; 
+               }
+
+               if (!penetrate) {
+                   bounceCountThisFrame++;
+                   if (bounceCountThisFrame >= 5) {
+                       b.x += (Math.random() - 0.5) * 1.0;
+                       b.y += (Math.random() - 0.5) * 1.0;
+                       break subStepLoop;
+                   }
+                   if (hitHypotenuse) {
+                       const temp = b.vx;
+                       if (block.shape === 'triangle_tl' || block.shape === 'triangle_br') {
+                           b.vx = -b.vy;
+                           b.vy = -temp;
+                       } else {
+                           b.vx = b.vy;
+                           b.vy = temp;
+                       }
+                   } else {
+                       if (Math.abs(distanceX) > Math.abs(distanceY)) {
+                           if (distanceX > 0) {
+                               b.vx = Math.abs(b.vx);
+                               b.x = blockRight + BALL_RADIUS;
+                           } else {
+                               b.vx = -Math.abs(b.vx);
+                               b.x = blockLeft - BALL_RADIUS;
+                           }
+                       } else {
+                           if (distanceY > 0) {
+                               b.vy = Math.abs(b.vy);
+                               b.y = blockBottom + BALL_RADIUS;
+                           } else {
+                               b.vy = -Math.abs(b.vy);
+                               b.y = blockTop - BALL_RADIUS;
+                           }
+                       }
+                   }
+               }
+               break;
+             }
+        }
+      }
+
+        let bossDefeated = false;
+        
+        for (let i = state.blocks.length - 1; i >= 0; i--) {
+            const b = state.blocks[i];
+            if (b.hp <= 0) {
+                 const bx = b.col * BLOCK_SIZE + BLOCK_SIZE / 2;
+                 const by = b.row * BLOCK_SIZE + BLOCK_SIZE / 2;
+                 
+                 if (b.type === 'iron') {
+                     // Armor broken, transform to normal block
+                     b.hp = state.score + Math.floor(Math.random() * (state.score * 0.5));
+                     b.type = 'normal';
+                     spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
+                 } else {
+                     let mainColor = '#38bdf8';
+                     if (b.type === 'muddy' || b.type === 'slime') mainColor = '#4ade80';
+                     else if (b.type === 'ghost') mainColor = '#c084fc';
+                     else if (b.type === 'boss') { mainColor = '#f43f5e'; bossDefeated = true; }
+                     else mainColor = `hsl(${Math.max(0, 200 - b.hp * 2)}, 80%, 60%)`;
+                     
+                     spawnParticles(bx, by, mainColor, 15);
+                     state.blocks.splice(i, 1);
+                 }
+            }
+        }
+
+        if (bossDefeated) state.bossDefeatedThisTurn = true;
+
+        if (state.status === 'RESOLVING' && (state.blocks.length === 0 || bossDefeated)) {
+            for (let i = 0; i < state.balls.length; i++) {
+                const b = state.balls[i];
+                if (b.active) {
+                    b.active = false;
+                    b.history = [];
+                    b.y = LOGICAL_HEIGHT - BALL_RADIUS;
+                    if (state.firstReturnX === null) state.firstReturnX = b.x;
+                }
+            }
+        }
+
+        let isAnyBallActive = false;
+        for (let i = 0; i < state.balls.length; i++) {
+            if (state.balls[i].active) {
+                isAnyBallActive = true;
+                break;
+            }
+        }
+        
+        if (state.status === 'RESOLVING' && !isAnyBallActive) {
+          const blocksRemaining = state.blocks.length;
+          const blocksDestroyed = state.blocksCountAtStart - blocksRemaining;
+
+          let evalText = '';
+          let evalColor = '';
+          let skipStages = 0;
+
+          if (state.bossDefeatedThisTurn) {
+              state.status = 'WARPING';
+              state.warpCounter = 0;
+              state.warpTimer = 0;
+              state.warpBlocks = [];
+              state.blocks = [];
+              state.items = [];
+              state.effects.push({ type: 'warp_lightning', isBoss: true, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+              state.effects.push({ type: 'eval_text_warp', text: 'BOSS DEFEATED!', color: '#f43f5e', timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+          } else if (blocksRemaining === 0 && state.blocksCountAtStart > 0) {
+              state.status = 'WARPING';
+              state.warpCounter = 0;
+              state.warpTimer = 0;
+              state.effects.push({ type: 'warp_lightning', isBoss: false, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+              state.effects.push({ type: 'eval_text_warp', text: 'FANTASTIC', color: '#facc15', timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+          } else if (blocksDestroyed >= 7) {
+              evalText = 'EXCELLENT';
+              evalColor = '#10b981'; // Emerald Green
+          } else if (blocksDestroyed >= 5) {
+              evalText = 'AMAZING';
+              evalColor = '#c084fc'; // Purple
+          } else if (blocksDestroyed >= 3) {
+              evalText = 'GREAT';
+              evalColor = '#3b82f6'; // Blue
+          } else if (blocksDestroyed >= 1) {
+              evalText = 'GOOD';
+              evalColor = '#34d399'; // Green
+          }
+
+          if (evalText !== '') {
+              state.effects.push({ type: 'eval_text', text: evalText, color: evalColor, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+          }
+
+          if (state.status === 'WARPING') {
+             state.items = []; // Items fly away due to warp
+          } else {
+             state.score += 1;
+             if (state.score > 0 && state.score % 50 === 49) {
+                 state.bossWarningTimer = 2.0;
+                 state.bossWarningText = 'BOSS INCOMING';
+             } else if (state.score > 0 && state.score % 50 === 0) {
+                 state.bossWarningTimer = 2.0;
+                 state.bossWarningText = 'BOSS APPEARED!';
+             }
+             state.ballsTotal += state.addedBallsNextTurn;
+             state.addedBallsNextTurn = 0;
+
+             if (state.score > highScore) {
+                highScore = state.score;
+                storage.setItem('dinoHighScore', highScore);
+             }
+
+             state.startX = state.firstReturnX !== null ? state.firstReturnX : state.startX;
+             
+             let gameOver = false;
+             state.blocks = state.blocks.map(b => {
+               if (b.row + 1 >= GRID_ROWS - 1) gameOver = true;
+               
+               let newShield = b.shield;
+               if (newShield) {
+                   if (b.row + 1 === GRID_ROWS - 1) {
+                       newShield = null; // Last row, shield disappears
+                   } else {
+                       const nextShield = { 'top': 'right', 'right': 'bottom', 'bottom': 'left', 'left': 'top' };
+                       newShield = nextShield[newShield];
+                   }
+               }
+               let newCol = b.col;
+               if (b.type === 'boss') {
+                   const slide = Math.floor(Math.random() * 3) - 1;
+                   newCol += slide;
+                   if (newCol < 0) newCol = 0;
+                   if (newCol > GRID_COLS - (b.width || 1)) newCol = GRID_COLS - (b.width || 1);
+               }
+               
+               return { ...b, row: b.row + 1, col: newCol, shield: newShield, isTransparent: b.type === 'ghost' ? !b.isTransparent : false };
+             });
+             state.items = state.items.filter(i => !i.collected && !i.triggered).map(i => {
+                return { ...i, row: i.row + 1 };
+             });
+
+             if (gameOver) {
+               state.status = 'GAME_OVER';
+               
+               const currentEntry = { name: state.username, score: state.score, timestamp: Date.now() };
+               leaderboard.push(currentEntry);
+               leaderboard.sort((a, b) => b.score - a.score);
+               if (leaderboard.length > 100) leaderboard = leaderboard.slice(0, 100);
+               storage.setItem('dinoLeaderboard', JSON.stringify(leaderboard));
+               state.lastPlayTimestamp = currentEntry.timestamp;
+               
+               updateUI();
+             } else {
+               const newRow = generateRow(0, state.score);
+               state.blocks.push(...newRow.blocks);
+               state.items.push(...newRow.items);
+               state.status = 'AIMING';
+               state.balls = [];
+               state.firstReturnX = null;
+             }
+             updateUI();
+          }
+        }
+      }
+    };
+
+    let lastTime = performance.now();
+    updateUI();
+
+    const drawDino = (ctx, x, y, isOpen, charId, scale) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      
+      let bodyColor, hornColor;
+      switch(charId) {
+          case 'orange': bodyColor = '#f97316'; hornColor = '#fff'; break;
+          case 'reaper': bodyColor = '#7e22ce'; hornColor = '#d8b4fe'; break;
+          case 'punch': bodyColor = '#ec4899'; hornColor = '#fff'; break;
+          case 'dino': bodyColor = '#2dd4bf'; hornColor = '#fff'; break; // Teal
+          default: bodyColor = '#38bdf8'; hornColor = '#fff'; break; // Light blue
+      }
+
+      // Spikes on back (drawn behind body)
+      ctx.fillStyle = hornColor;
+      ctx.beginPath();
+      ctx.moveTo(-22, -10); ctx.lineTo(-35, -20); ctx.lineTo(-15, -20);
+      ctx.moveTo(-28, 5); ctx.lineTo(-40, -5); ctx.lineTo(-25, -2);
+      ctx.moveTo(22, -10); ctx.lineTo(35, -20); ctx.lineTo(15, -20);
+      ctx.moveTo(28, 5); ctx.lineTo(40, -5); ctx.lineTo(25, -2);
+      ctx.fill();
+
+      // Body (Gumdrop shape)
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.arc(0, -5, 32, Math.PI, 0); // Top arc
+      ctx.rect(-32, -5, 64, 35); // Lower rectangle
+      ctx.fill();
+
+      // Top Horns
+      ctx.fillStyle = hornColor;
+      ctx.beginPath();
+      ctx.moveTo(-15, -32); ctx.lineTo(-20, -45); ctx.lineTo(-5, -35); // Left horn
+      ctx.moveTo(15, -32); ctx.lineTo(20, -45); ctx.lineTo(5, -35); // Right horn
+      ctx.fill();
+
+      // Eyes (Big Ovals)
+      ctx.fillStyle = '#fff';
+      if (charId === 'reaper') {
+          ctx.beginPath(); ctx.ellipse(-12, -8, 8, 12, 0, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(12, -8, 8, 12, 0, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#0f172a'; // Dead pupil
+          ctx.beginPath(); ctx.ellipse(-12, -6, 4, 6, 0, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(12, -6, 4, 6, 0, 0, Math.PI*2); ctx.fill();
+      } else {
+          ctx.beginPath(); ctx.ellipse(-12, -10, 9, 14, 0, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(12, -10, 9, 14, 0, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#0f172a'; // Pupil looking forward
+          ctx.beginPath(); ctx.ellipse(-12, -12, 4, 6, 0, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(12, -12, 4, 6, 0, 0, Math.PI*2); ctx.fill();
+      }
+
+      // Mouth
+      ctx.fillStyle = '#1e1b4b'; // dark mouth interior
+      ctx.beginPath();
+      if (isOpen) {
+        // Aiming - big open mouth
+        ctx.arc(0, 12, 16, 0, Math.PI, false);
+        ctx.fill();
+      } else {
+        // Smiling mouth
+        ctx.arc(0, 10, 12, 0, Math.PI, false);
+        ctx.fill();
+        // Tooth (white square on bottom)
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-5, 17, 10, 5);
+      }
+
+      ctx.restore();
+    };
+
+    const drawLightningIcon = (ctx, x, y, isHorizontal) => {
+        ctx.save();
+        ctx.translate(x, y);
+        if (isHorizontal) ctx.rotate(Math.PI / 2);
+        ctx.scale(1.5, 1.5);
+        ctx.beginPath();
+        ctx.moveTo(2, -6);
+        ctx.lineTo(-4, 0);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(-2, 6);
+        ctx.lineTo(4, -1);
+        ctx.lineTo(0, -1);
+        ctx.closePath();
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = '#60a5fa'; // Light blue glow
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+    };
+
+    const drawItemOrb = (ctx, type, time = 0) => {
+        if (type === 'thunder_v' || type === 'thunder_h') {
+             ctx.fillStyle = `rgba(56, 189, 248, ${0.4 + Math.random() * 0.4})`;
+             ctx.beginPath(); ctx.arc(0, 0, 22 + Math.random() * 4, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.strokeStyle = '#fff';
+             ctx.lineWidth = 1.5;
+             ctx.lineCap = 'round';
+             ctx.lineJoin = 'round';
+             ctx.beginPath();
+             
+             // Draw realistic erratic sparks
+             const drawSpark = (angle) => {
+                 let cx = Math.cos(angle) * 10;
+                 let cy = Math.sin(angle) * 10;
+                 ctx.moveTo(cx, cy);
+                 const maxLen = 15 + Math.random() * 15;
+                 const segments = 6;
+                 let currentAngle = angle;
+                 for (let j = 0; j < segments; j++) {
+                     currentAngle += (Math.random() - 0.5) * 2.0; // erratic sharp turns
+                     const step = maxLen / segments;
+                     cx += Math.cos(currentAngle) * step;
+                     cy += Math.sin(currentAngle) * step;
+                     ctx.lineTo(cx, cy);
+                 }
+             };
+
+             for(let i=0; i<4; i++) {
+                 drawSpark(Math.random() * Math.PI * 2);
+             }
+             ctx.stroke();
+
+             ctx.fillStyle = '#bae6fd';
+             ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+             drawLightningIcon(ctx, 0, 0, type === 'thunder_h');
+        } else if (type === 'split') {
+             ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+             ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.fillStyle = '#e0f2fe';
+             ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.strokeStyle = '#0369a1';
+             ctx.lineWidth = 3.5;
+             ctx.lineCap = 'round';
+             ctx.lineJoin = 'round';
+             ctx.beginPath();
+             
+             // Down arrow
+             ctx.moveTo(0, 1); ctx.lineTo(0, 8);
+             ctx.moveTo(-4, 4); ctx.lineTo(0, 8); ctx.lineTo(4, 4);
+             
+             // Top left arrow
+             ctx.moveTo(0, -1); ctx.lineTo(-7, -7);
+             ctx.moveTo(-3, -8); ctx.lineTo(-8, -8); ctx.lineTo(-8, -3);
+             
+             // Top right arrow
+             ctx.moveTo(0, -1); ctx.lineTo(7, -7);
+             ctx.moveTo(3, -8); ctx.lineTo(8, -8); ctx.lineTo(8, -3);
+             
+             ctx.stroke();
+        } else {
+             ctx.fillStyle = 'rgba(52, 211, 153, 0.3)';
+             ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.fillStyle = '#a7f3d0';
+             ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+             
+             if (type === 'add_ball') {
+                 ctx.fillStyle = '#064e3b';
+                 ctx.font = 'bold 24px "Nunito", sans-serif';
+                 ctx.textAlign = 'center';
+                 ctx.textBaseline = 'middle';
+                 ctx.fillText("+", 0, 2);
+             }
+        }
+    };
+
+    const render = (time) => {
+      const dt = Math.min((time - lastTime) / 1000, 0.05); 
+      lastTime = time;
+
+      const steps = 5;
+      const subDt = dt / steps;
+      for (let i = 0; i < steps; i++) {
+        tick(subDt, time);
+      }
+
+      // Background Gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
+      grad.addColorStop(0, '#0f172a');
+      grad.addColorStop(0.5, '#1e1b4b');
+      grad.addColorStop(1, '#4c1d95');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+      // Stars
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      for(let i=0; i<30; i++) {
+          const sx = (Math.sin(i * 123) * 0.5 + 0.5) * LOGICAL_WIDTH;
+          const sy = (Math.cos(i * 321) * 0.5 + 0.5) * (LOGICAL_HEIGHT - 300);
+          const r = Math.abs(Math.sin(time / 1000 + i)) * 2;
+          ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+      }
+
+      // Mountains
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.7)';
+      ctx.beginPath();
+      ctx.moveTo(0, LOGICAL_HEIGHT);
+      ctx.lineTo(0, LOGICAL_HEIGHT - 120);
+      ctx.lineTo(80, LOGICAL_HEIGHT - 220);
+      ctx.lineTo(200, LOGICAL_HEIGHT - 100);
+      ctx.lineTo(350, LOGICAL_HEIGHT - 250);
+      ctx.lineTo(500, LOGICAL_HEIGHT - 80);
+      ctx.lineTo(650, LOGICAL_HEIGHT - 180);
+      ctx.lineTo(700, LOGICAL_HEIGHT - 120);
+      ctx.lineTo(700, LOGICAL_HEIGHT);
+      ctx.fill();
+
+      // Aiming Line (Laser pointer)
+      if (state.status === 'AIMING' && state.targetPoint) {
+          const dx = state.targetPoint.x - state.startX;
+          const dy = state.targetPoint.y - LOGICAL_HEIGHT;
+          
+          if (dy < -10) {
+              const length = 2000;
+              const dist = Math.hypot(dx, dy);
+              const dirX = dx / dist;
+              const dirY = dy / dist;
+              
+              ctx.beginPath();
+              ctx.moveTo(state.startX, LOGICAL_HEIGHT - 30);
+              ctx.lineTo(state.startX + dirX * length, LOGICAL_HEIGHT - 30 + dirY * length);
+              ctx.strokeStyle = 'rgba(216, 180, 254, 0.7)';
+              ctx.lineWidth = 6;
+              ctx.setLineDash([20, 15]);
+              ctx.stroke();
+              ctx.setLineDash([]);
+              
+              ctx.beginPath();
+              ctx.arc(state.startX + dirX * Math.min(dist, length), LOGICAL_HEIGHT - 30 + dirY * Math.min(dist, length), 15, 0, Math.PI*2);
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = 3;
+              ctx.stroke();
+          }
+      }
+
+      state.particles.forEach(p => {
+          ctx.save();
+          ctx.globalAlpha = p.life / p.maxLife;
+          ctx.fillStyle = p.color;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+      });
+
+      // Items
+      const floatOffset = Math.sin(time / 200) * 5;
+      state.items.forEach(item => {
+         if (item.collected) return;
+         const x = item.col * BLOCK_SIZE + BLOCK_SIZE / 2;
+         const y = item.row * BLOCK_SIZE + BLOCK_SIZE / 2 + floatOffset;
+         
+         ctx.save();
+         ctx.translate(x, y);
+         drawItemOrb(ctx, item.type, time);
+         ctx.restore();
+      });
+
+      // Blocks
+      state.blocks.forEach(block => {
+        const x = block.col * BLOCK_SIZE;
+        const y = block.row * BLOCK_SIZE;
+        const margin = 3;
+        const blockWidth = block.width || 1;
+        const sizeW = BLOCK_SIZE * blockWidth - margin * 2;
+        const sizeH = BLOCK_SIZE - margin * 2;
+        
+        ctx.save();
+        if (block.isTransparent) {
+           ctx.globalAlpha = 0.3;
+        }
+
+        let mainColor, highlightColor;
+        if (block.type === 'iron') {
+           mainColor = '#64748b'; highlightColor = '#94a3b8';
+        } else if (block.type === 'boss') {
+           mainColor = '#ef4444'; highlightColor = '#fca5a5';
+        } else if (block.type === 'muddy' || block.type === 'slime') {
+           mainColor = '#65a30d'; highlightColor = '#84cc16';
+        } else if (block.type === 'ghost') {
+           mainColor = '#a855f7'; highlightColor = '#c084fc';
+        } else if (block.type === 'shield') {
+           mainColor = '#eab308'; highlightColor = '#fde047';
+        } else {
+           const ratio = Math.max(0, Math.min(1, (block.hp - 1) / 49)); 
+           const hue = 240 - ratio * 240; 
+           mainColor = `hsl(${hue}, 70%, 45%)`;
+           highlightColor = `hsl(${hue}, 80%, 60%)`;
+        }
+        
+        const drawShape = () => {
+            ctx.beginPath();
+            if (block.shape === 'square' || !block.shape) {
+                ctx.roundRect(x + margin, y + margin, sizeW, sizeH, 8);
+            } else if (block.shape === 'triangle_tl') {
+                ctx.moveTo(x + margin, y + margin);
+                ctx.lineTo(x + sizeW + margin, y + margin);
+                ctx.lineTo(x + margin, y + sizeH + margin);
+                ctx.closePath();
+            } else if (block.shape === 'triangle_tr') {
+                ctx.moveTo(x + margin, y + margin);
+                ctx.lineTo(x + sizeW + margin, y + margin);
+                ctx.lineTo(x + sizeW + margin, y + sizeH + margin);
+                ctx.closePath();
+            } else if (block.shape === 'triangle_bl') {
+                ctx.moveTo(x + margin, y + margin);
+                ctx.lineTo(x + margin, y + sizeH + margin);
+                ctx.lineTo(x + sizeW + margin, y + sizeH + margin);
+                ctx.closePath();
+            } else if (block.shape === 'triangle_br') {
+                ctx.moveTo(x + sizeW + margin, y + margin);
+                ctx.lineTo(x + sizeW + margin, y + sizeH + margin);
+                ctx.lineTo(x + margin, y + sizeH + margin);
+                ctx.closePath();
+            }
+        };
+
+        if (block.type === 'iron') {
+            const grad = ctx.createLinearGradient(x + margin, y + margin, x + sizeW + margin, y + sizeH + margin);
+            grad.addColorStop(0, highlightColor);
+            grad.addColorStop(0.5, mainColor);
+            grad.addColorStop(1, '#334155');
+            ctx.fillStyle = grad;
+            drawShape();
+            ctx.fill();
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#cbd5e1';
+            const boltRadius = 3;
+            ctx.beginPath(); ctx.arc(x + margin + 8, y + margin + 8, boltRadius, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + margin + sizeW - 8, y + margin + 8, boltRadius, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + margin + 8, y + margin + sizeH - 8, boltRadius, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + margin + sizeW - 8, y + margin + sizeH - 8, boltRadius, 0, Math.PI*2); ctx.fill();
+        } else if (block.type === 'boss') {
+            // Boss dino body
+            ctx.fillStyle = mainColor;
+            ctx.beginPath();
+            ctx.roundRect(x + margin, y + margin, sizeW, sizeH, 16);
+            ctx.fill();
+            // Spikes on back
+            ctx.fillStyle = highlightColor;
+            ctx.beginPath(); ctx.moveTo(x + margin, y + margin + 15); ctx.lineTo(x + margin - 15, y + margin + 35); ctx.lineTo(x + margin, y + margin + 55); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(x + margin, y + margin + 45); ctx.lineTo(x + margin - 18, y + margin + 65); ctx.lineTo(x + margin, y + margin + 85); ctx.fill();
+            // Eye
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath(); ctx.arc(x + margin + sizeW * 0.65, y + margin + sizeH * 0.35, 12, 0, Math.PI*2); ctx.fill();
+            // Angry eyebrow
+            ctx.lineWidth = 5; ctx.strokeStyle = '#7f1d1d'; ctx.beginPath(); ctx.moveTo(x + margin + sizeW * 0.55, y + margin + sizeH * 0.25); ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH * 0.30); ctx.stroke();
+            // Teeth
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath(); 
+            ctx.moveTo(x + margin + sizeW * 0.65, y + margin + sizeH); 
+            ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH - 18); 
+            ctx.lineTo(x + margin + sizeW * 0.85, y + margin + sizeH); 
+            ctx.lineTo(x + margin + sizeW * 0.95, y + margin + sizeH - 18); 
+            ctx.lineTo(x + margin + sizeW, y + margin + sizeH); 
+            ctx.fill();
+        } else if (block.type === 'muddy' || block.type === 'slime') {
+            const grad = ctx.createRadialGradient(x + margin + sizeW/2, y + margin + sizeH/2, 5, x + margin + sizeW/2, y + margin + sizeH/2, sizeW);
+            grad.addColorStop(0, highlightColor);
+            grad.addColorStop(1, mainColor);
+            ctx.fillStyle = grad;
+            drawShape();
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath(); ctx.arc(x + margin + 10, y + margin + 15, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + margin + sizeW - 12, y + margin + 25, 6, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + margin + sizeW/2, y + margin + sizeH - 10, 5, 0, Math.PI*2); ctx.fill();
+
+        } else {
+            const grad = ctx.createLinearGradient(x + margin, y + margin, x + sizeW + margin, y + sizeH + margin);
+            grad.addColorStop(0, highlightColor);
+            grad.addColorStop(1, mainColor);
+            ctx.fillStyle = grad;
+            drawShape();
+            ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Details
+            if (block.type === 'ghost') {
+                ctx.fillStyle = '#e9d5ff';
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath(); ctx.arc(x + margin + sizeW * 0.3, y + margin + sizeH * 0.3, 8, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + margin + sizeW * 0.7, y + margin + sizeH * 0.7, 10, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = block.isTransparent ? 0.3 : 1.0;
+            } else if (block.shape === 'square' || !block.shape) {
+                // Shiny top inner bevel
+                ctx.fillStyle = highlightColor;
+                ctx.beginPath();
+                ctx.moveTo(x + margin + 8, y + margin + 8);
+                ctx.lineTo(x + sizeW + margin - 8, y + margin + 8);
+                ctx.lineTo(x + sizeW + margin - 15, y + margin + 18);
+                ctx.lineTo(x + margin + 15, y + margin + 18);
+                ctx.fill();
+            } else {
+                ctx.fillStyle = highlightColor;
+                ctx.globalAlpha = 0.5;
+                drawShape();
+                ctx.fill();
+                ctx.globalAlpha = block.isTransparent ? 0.3 : 1.0;
+            }
+        }
+
+        // White flash when hit
+        if (block.hitTimer > 0) {
+           ctx.fillStyle = `rgba(255, 255, 255, ${block.hitTimer / 0.1})`;
+           drawShape();
+           ctx.fill();
+        }
+
+        let tx = x + (BLOCK_SIZE * blockWidth) / 2;
+        let ty = y + BLOCK_SIZE / 2;
+        let fontSize = 28;
+        
+        if (block.shape && block.shape !== 'square') {
+            fontSize = 22;
+            if (block.shape === 'triangle_tl') { tx = x + BLOCK_SIZE * 0.35; ty = y + BLOCK_SIZE * 0.35; }
+            else if (block.shape === 'triangle_tr') { tx = x + BLOCK_SIZE * 0.65; ty = y + BLOCK_SIZE * 0.35; }
+            else if (block.shape === 'triangle_bl') { tx = x + BLOCK_SIZE * 0.35; ty = y + BLOCK_SIZE * 0.65; }
+            else if (block.shape === 'triangle_br') { tx = x + BLOCK_SIZE * 0.65; ty = y + BLOCK_SIZE * 0.65; }
+        }
+
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${fontSize}px "Nunito", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 4;
+        ctx.fillText(block.hp.toString(), tx, ty);
+        ctx.shadowBlur = 0;
+        
+        if (block.shield) {
+            const L = x + margin;
+            const R = x + margin + sizeW;
+            const T = y + margin;
+            const B = y + margin + sizeH;
+            const thick = 12;
+
+            let rx, ry, rw, rh;
+            if (block.shield === 'top') { rx = L; ry = T; rw = sizeW; rh = thick; }
+            else if (block.shield === 'right') { rx = R - thick; ry = T; rw = thick; rh = sizeH; }
+            else if (block.shield === 'bottom') { rx = L; ry = B - thick; rw = sizeW; rh = thick; }
+            else if (block.shield === 'left') { rx = L; ry = T; rw = thick; rh = sizeH; }
+
+            const grad = ctx.createLinearGradient(rx, ry, rx + rw, ry + rh);
+            grad.addColorStop(0, '#93c5fd');
+            grad.addColorStop(0.5, '#3b82f6');
+            grad.addColorStop(1, '#1e3a8a');
+            
+            ctx.fillStyle = grad;
+            ctx.fillRect(rx, ry, rw, rh);
+            
+            ctx.strokeStyle = '#bfdbfe';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(rx, ry, rw, rh);
+            
+            ctx.fillStyle = '#60a5fa';
+            const br = 2.5;
+            if (block.shield === 'top' || block.shield === 'bottom') {
+                ctx.beginPath(); ctx.arc(rx + 8, ry + rh/2, br, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(rx + rw - 8, ry + rh/2, br, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.beginPath(); ctx.arc(rx + rw/2, ry + 8, br, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(rx + rw/2, ry + rh - 8, br, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        ctx.restore();
+      });
+
+      if (state.status === 'WARPING') {
+          state.warpBlocks.forEach(b => {
+              ctx.save();
+              ctx.translate(b.x, b.y);
+              
+              if (b.isItem) {
+                  drawItemOrb(ctx, b.type, time);
+              } else {
+                  ctx.fillStyle = b.color;
+                  ctx.beginPath();
+                  ctx.roundRect(-BLOCK_SIZE/2 + 2, -BLOCK_SIZE/2 + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4, 8);
+                  ctx.fill();
+                  
+                  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                  ctx.beginPath();
+                  ctx.roundRect(-BLOCK_SIZE/2 + 2, -BLOCK_SIZE/2 + 2, BLOCK_SIZE - 4, (BLOCK_SIZE - 4)/2, 8);
+                  ctx.fill();
+
+                  ctx.fillStyle = '#fff';
+                  ctx.font = 'bold 24px "Nunito", sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                  ctx.shadowBlur = 4;
+                  ctx.fillText(b.hp, 0, 0);
+              }
+              
+              ctx.restore();
+          });
+      }
+
+      // Render Thunder Effects
+      state.effects.forEach(eff => {
+          let alpha = eff.timer / 0.4;
+          if (eff.type === 'thunder_v' || eff.type === 'thunder_h') alpha = eff.timer / 0.8;
+          else if (eff.type === 'warp_lightning' || eff.type === 'eval_text') alpha = eff.timer / 1.5;
+          else if (eff.type === 'damage_popup') alpha = eff.timer / 0.6;
+          
+          ctx.save();
+          if (eff.type === 'thunder_v' || eff.type === 'thunder_h') {
+              const drawLightning = (x1, y1, x2, y2, color, width, glow) => {
+                  ctx.strokeStyle = color;
+                  ctx.lineWidth = width;
+                  ctx.lineCap = 'round';
+                  ctx.lineJoin = 'round';
+                  ctx.shadowColor = color;
+                  ctx.shadowBlur = glow;
+                  ctx.beginPath();
+                  ctx.moveTo(x1, y1);
+                  const segments = 20;
+                  for (let i = 1; i <= segments; i++) {
+                      let t = i / segments;
+                      let mx = x1 + (x2 - x1) * t;
+                      let my = y1 + (y2 - y1) * t;
+                      if (i < segments) {
+                          const offset = (Math.random() - 0.5) * 60; // Jagged jitter
+                          if (eff.type === 'thunder_v') mx += offset;
+                          else my += offset;
+                      }
+                      ctx.lineTo(mx, my);
+                  }
+                  ctx.stroke();
+              };
+
+              const startX = eff.type === 'thunder_v' ? eff.x : 0;
+              const startY = eff.type === 'thunder_h' ? eff.y : 0;
+              const endX = eff.type === 'thunder_v' ? eff.x : LOGICAL_WIDTH;
+              const endY = eff.type === 'thunder_h' ? eff.y : LOGICAL_HEIGHT;
+
+              // Draw multiple bolts
+              for (let j = 0; j < 3; j++) {
+                  drawLightning(startX, startY, endX, endY, `rgba(56, 189, 248, ${alpha * 0.8})`, 8, 30);
+                  drawLightning(startX, startY, endX, endY, `rgba(255, 255, 255, ${alpha})`, 3, 10);
+              }
+          } else if (eff.type === 'eval_text') {
+              const p = eff.timer / 1.5; // 1 to 0
+              const scale = p > 0.8 ? 1.0 + (p - 0.8) * 5 : 1.0; 
+              const textAlpha = p < 0.2 ? p / 0.2 : 1;
+              const yOffset = p < 0.5 ? (0.5 - p) * -50 : 0;
+              
+              ctx.translate(LOGICAL_WIDTH / 2, eff.y + yOffset);
+              ctx.scale(scale, scale);
+              ctx.globalAlpha = textAlpha;
+              
+              ctx.fillStyle = eff.color;
+              ctx.font = '900 60px "Nunito", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              
+              ctx.shadowColor = eff.color;
+              ctx.shadowBlur = 20;
+              ctx.fillText(eff.text, 0, 0);
+              
+              ctx.fillStyle = '#fff';
+              ctx.shadowBlur = 0;
+              ctx.fillText(eff.text, 0, 0);
+          } else if (eff.type === 'eval_text_warp') {
+              const p = eff.timer / 1.5; 
+              const scale = p > 0.8 ? 1.0 + (p - 0.8) * 5 : (p < 0.2 ? 1.0 - (0.2 - p) * 2 : 1.0); 
+              const textAlpha = p < 0.2 ? p / 0.2 : 1;
+              
+              ctx.translate(LOGICAL_WIDTH / 2, eff.y);
+              ctx.scale(scale, scale);
+              ctx.globalAlpha = textAlpha;
+              
+              ctx.fillStyle = eff.color;
+              ctx.font = '900 60px "Nunito", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              
+              ctx.shadowColor = eff.color;
+              ctx.shadowBlur = 30;
+              ctx.fillText(eff.text, 0, 0);
+              
+              ctx.fillStyle = '#fff';
+              ctx.shadowBlur = 0;
+              ctx.fillText(eff.text, 0, 0);
+              
+              ctx.font = '900 30px "Nunito", sans-serif';
+              ctx.fillStyle = '#fef08a';
+              ctx.fillText("+10 STAGES SKIP!", 0, 50);
+          } else if (eff.type === 'warp_lightning') {
+              const p = eff.timer / 1.5;
+              const alpha = p < 0.2 ? p / 0.2 : 1;
+              const mainColor = eff.isBoss ? '244, 63, 94' : '56, 189, 248';
+              for (let i = 0; i < (eff.isBoss ? 5 : 3); i++) {
+                 const yOffset = (Math.random() - 0.5) * (eff.isBoss ? 150 : 60);
+                 ctx.strokeStyle = `rgba(${mainColor}, ${alpha * (eff.isBoss ? 1.0 : 0.8)})`;
+                 ctx.lineWidth = 10 + Math.random() * 10;
+                 ctx.beginPath(); 
+                 ctx.moveTo(0, eff.y + yOffset); 
+                 ctx.lineTo(LOGICAL_WIDTH, eff.y + yOffset + (Math.random()-0.5)*20); 
+                 ctx.stroke();
+                 
+                 ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                 ctx.lineWidth = 4;
+                 ctx.stroke();
+              }
+          } else if (eff.type === 'damage_popup') {
+               const p = eff.timer / 0.6;
+               ctx.translate(eff.x, eff.y - (1 - p) * 50); // Float up
+               ctx.scale(eff.scale, eff.scale);
+               ctx.globalAlpha = p < 0.2 ? p / 0.2 : 1;
+               ctx.fillStyle = '#fef08a';
+               ctx.font = '900 24px "Nunito", sans-serif';
+               ctx.textAlign = 'center';
+               ctx.textBaseline = 'middle';
+               ctx.shadowColor = '#eab308';
+               ctx.shadowBlur = 10;
+               ctx.fillText(eff.text, 0, 0);
+           }
+          ctx.restore();
+      });
+      // Remove finished effects
+      state.effects = state.effects.filter(e => e.timer > 0);
+      state.effects.forEach(e => e.timer -= (time - lastTime)/1000 || dt); // Ensure correct timing subtraction
+
+      // Dinosaur Launcher
+      if (state.status !== 'START_SCREEN') {
+         const isAiming = state.status === 'AIMING';
+         const dinoScale = isAiming ? 1.0 + Math.sin(time / 200) * 0.05 : 1.0; // Breathing animation
+         drawDino(ctx, state.startX, LOGICAL_HEIGHT - 30, isAiming, state.selectedChar, dinoScale);
+
+         if (isAiming) {
+             ctx.fillStyle = '#fff';
+             ctx.font = '900 24px "Nunito", sans-serif';
+             ctx.textAlign = 'center';
+             ctx.shadowColor = '#000';
+             ctx.shadowBlur = 5;
+             ctx.fillText(`x${state.ballsTotal}`, state.startX, LOGICAL_HEIGHT - 80);
+             ctx.shadowBlur = 0;
+         }
+      }
+
+      // Balls & Trails
+      if (state.status === 'AIMING') {
+          // Do not draw balls when aiming, just the dino text
+      } else {
+          state.balls.forEach(ball => {
+              if (!ball.launched) return;
+              
+              // Draw Trail
+              if (ball.active && ball.history && ball.history.length > 0) {
+                  ctx.beginPath();
+                  ctx.moveTo(ball.history[0].x, ball.history[0].y);
+                  for(let k=1; k<ball.history.length; k++){
+                     ctx.lineTo(ball.history[k].x, ball.history[k].y);
+                  }
+                  ctx.lineTo(ball.x, ball.y);
+                  
+                  let trailColor = ball.isLeader ? 'rgba(250, 204, 21, 0.4)' : 'rgba(255, 255, 255, 0.3)';
+                  ctx.strokeStyle = trailColor;
+                  ctx.lineWidth = ball.isLeader ? BALL_RADIUS * 3 : BALL_RADIUS * 2;
+                  ctx.lineCap = 'round';
+                  ctx.lineJoin = 'round';
+                  ctx.stroke();
+              }
+
+              // Draw Ball
+              const radius = ball.isLeader ? BALL_RADIUS * 1.5 : BALL_RADIUS;
+              
+              if (ball.hitCount >= 200) {
+                  ctx.fillStyle = '#fde047'; // Bright gold
+                  ctx.shadowColor = '#ca8a04';
+                  ctx.shadowBlur = 20;
+              } else if (ball.hitCount >= 100) {
+                  ctx.fillStyle = '#fef08a'; // Light gold
+                  ctx.shadowColor = '#eab308';
+                  ctx.shadowBlur = 15;
+              } else if (ball.isLeader) {
+                  ctx.fillStyle = '#fef08a';
+                  ctx.shadowColor = '#facc15';
+                  ctx.shadowBlur = 10;
+              } else {
+                  if (state.selectedChar === 'orange') ctx.fillStyle = '#ffedd5';
+                  else if (state.selectedChar === 'reaper') ctx.fillStyle = '#f3e8ff';
+                  else if (state.selectedChar === 'punch') ctx.fillStyle = '#fce7f3';
+                  else ctx.fillStyle = '#fdf4ff';
+                  ctx.shadowColor = '#c084fc';
+                  ctx.shadowBlur = 10;
+              }
+              
+              ctx.beginPath();
+              if (!ball.active) {
+                const drawX = state.firstReturnX !== null ? state.firstReturnX : ball.x;
+                ctx.arc(drawX, LOGICAL_HEIGHT - 20, radius, 0, Math.PI * 2);
+              } else {
+                ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+              }
+              ctx.fill();
+              ctx.shadowBlur = 0;
+          });
+      }
+
+      // Retrieve Balls Button
+      if (state.status === 'SHOOTING' || state.status === 'RESOLVING') {
+        const btnX = LOGICAL_WIDTH - 60;
+        const btnY = LOGICAL_HEIGHT - 60;
+        
+        ctx.fillStyle = 'rgba(14, 165, 233, 0.8)';
+        ctx.strokeStyle = '#7dd3fc';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(btnX, btnY, 40, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px "Nunito", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText("DOWN", btnX, btnY - 5);
+        
+        ctx.beginPath();
+        ctx.moveTo(btnX - 10, btnY + 8);
+        ctx.lineTo(btnX + 10, btnY + 8);
+        ctx.lineTo(btnX, btnY + 20);
+        ctx.fill();
+      }
+      if (state.bossWarningTimer > 0) {
+          ctx.save();
+          ctx.fillStyle = `rgba(0,0,0,${Math.min(0.7, state.bossWarningTimer)})`;
+          ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+          const bannerY = LOGICAL_HEIGHT / 2 - 50;
+          ctx.fillStyle = `rgba(236, 72, 153, ${Math.min(0.9, state.bossWarningTimer)})`;
+          ctx.fillRect(0, bannerY, LOGICAL_WIDTH, 100);
+
+          ctx.fillStyle = '#fff';
+          ctx.font = '900 40px "Nunito", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = '#be185d';
+          ctx.shadowBlur = 10;
+          
+          if (Math.floor(state.bossWarningTimer * 10) % 2 === 0) {
+             ctx.fillText(state.bossWarningText === 'BOSS APPEARED!' ? "DANGER!!" : "WARNING!!", LOGICAL_WIDTH / 2, bannerY + 30);
+             ctx.fillText(state.bossWarningText || "BOSS INCOMING", LOGICAL_WIDTH / 2, bannerY + 70);
+          }
+          ctx.restore();
+      }
+
+      requestAnimationFrame(render);
+    };
+
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
