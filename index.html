@@ -1486,6 +1486,18 @@
              ctx.moveTo(3, -8); ctx.lineTo(8, -8); ctx.lineTo(8, -3);
              
              ctx.stroke();
+        } else if (type === 'coin') {
+             ctx.fillStyle = 'rgba(250, 204, 21, 0.4)';
+             ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.fillStyle = '#fde047';
+             ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.fillStyle = '#854d0e';
+             ctx.font = '900 22px "Nunito", sans-serif';
+             ctx.textAlign = 'center';
+             ctx.textBaseline = 'middle';
+             ctx.fillText("$", 0, 2);
         } else {
              ctx.fillStyle = 'rgba(52, 211, 153, 0.3)';
              ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
