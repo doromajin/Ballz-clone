@@ -187,11 +187,20 @@
         </div>
 
         <!-- Penetration -->
-        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1.5rem; border: 2px solid rgba(192,132,252,0.3);">
+        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1rem; border: 2px solid rgba(192,132,252,0.3);">
             <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #d8b4fe; font-weight: bold;">PENETRATE (1st hit only, Max 1)</div>
             <div style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #c084fc;">Lv. <span id="shopPenetration">0</span></div>
             <button class="retry-button" id="upgradePenetrationBtn" style="padding: 0.8rem; width: 100%; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #c084fc, #9333ea); color: #fff;">
-                UPGRADE (<span id="costPenetration">500</span>)
+                UPGRADE (<span id="costPenetration">200</span>)
+            </button>
+        </div>
+
+        <!-- Main Balls -->
+        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1.5rem; border: 2px solid rgba(52,211,153,0.3);">
+            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #6ee7b7; font-weight: bold;">MAIN BALLS (Max 5)</div>
+            <div style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #34d399;">Lv. <span id="shopMainBalls">1</span></div>
+            <button class="retry-button" id="upgradeMainBallsBtn" style="padding: 0.8rem; width: 100%; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #34d399, #059669); color: #fff;">
+                UPGRADE (<span id="costMainBalls">200</span>)
             </button>
         </div>
 
@@ -368,6 +377,7 @@
       baseDamage: parseInt(storage.getItem('dinoBaseDamage')) || 1,
       explosionLevel: parseInt(storage.getItem('explosionLevel')) || 0,
       penetrationLevel: parseInt(storage.getItem('penetrationLevel')) || 0,
+      mainBallsLevel: parseInt(storage.getItem('dinoMainBallsLevel')) || 1,
       particles: [],
       warpBlocks: [],
       effects: [],
@@ -506,6 +516,7 @@
         const costBase = 50 + (state.baseDamage - 1) * 30;
         const costExpl = 100 + (state.explosionLevel) * 50;
         const costPen = 300;
+        const costMainBalls = 200;
         
         document.getElementById('shopCoins').innerText = state.totalCoins || 0;
         
@@ -535,6 +546,15 @@
             document.getElementById('upgradePenetrationBtn').innerHTML = `UPGRADE (<span id="costPenetration">${costPen}</span>)`;
             document.getElementById('upgradePenetrationBtn').style.opacity = state.totalCoins >= costPen ? '1' : '0.5';
         }
+        
+        document.getElementById('shopMainBalls').innerText = state.mainBallsLevel >= 5 ? 'MAX' : state.mainBallsLevel;
+        if (state.mainBallsLevel >= 5) {
+            document.getElementById('upgradeMainBallsBtn').innerText = 'MAX LEVEL';
+            document.getElementById('upgradeMainBallsBtn').style.opacity = '0.5';
+        } else {
+            document.getElementById('upgradeMainBallsBtn').innerHTML = `UPGRADE (<span id="costMainBalls">${costMainBalls}</span>)`;
+            document.getElementById('upgradeMainBallsBtn').style.opacity = state.totalCoins >= costMainBalls ? '1' : '0.5';
+        }
     };
 
     const openShopBtn = document.getElementById('openShopBtn');
@@ -542,6 +562,7 @@
     const upgradeBtn = document.getElementById('upgradeBtn');
     const upgradeExplosionBtn = document.getElementById('upgradeExplosionBtn');
     const upgradePenetrationBtn = document.getElementById('upgradePenetrationBtn');
+    const upgradeMainBallsBtn = document.getElementById('upgradeMainBallsBtn');
     const shopOverlay = document.getElementById('shopOverlay');
 
     openShopBtn.addEventListener('click', () => {
@@ -586,6 +607,18 @@
             state.penetrationLevel++;
             storage.setItem('dinoTotalCoins', state.totalCoins.toString());
             storage.setItem('penetrationLevel', state.penetrationLevel.toString());
+            updateShopUI();
+            topCoinText.innerText = state.totalCoins;
+        }
+    });
+    
+    upgradeMainBallsBtn.addEventListener('click', () => {
+        const cost = 200;
+        if (state.totalCoins >= cost && state.mainBallsLevel < 5) {
+            state.totalCoins -= cost;
+            state.mainBallsLevel++;
+            storage.setItem('dinoTotalCoins', state.totalCoins.toString());
+            storage.setItem('dinoMainBallsLevel', state.mainBallsLevel.toString());
             updateShopUI();
             topCoinText.innerText = state.totalCoins;
         }
@@ -676,7 +709,7 @@
         vy,
         active: false,
         launched: false,
-        isLeader: idx === 0,
+        isLeader: idx < (state.mainBallsLevel || 1),
         bounceCount: 0,
         history: [], 
         hitCount: 0
@@ -772,6 +805,7 @@
                 baseDamage: state.baseDamage || 1,
                 explosionLevel: state.explosionLevel || 0,
                 penetrationLevel: state.penetrationLevel || 0,
+                mainBallsLevel: state.mainBallsLevel || 1,
                 particles: [],
                 warpBlocks: [],
                 balls: [],
@@ -984,7 +1018,7 @@
               
               const bonusCoins = 15;
               state.totalCoins = (state.totalCoins || 0) + bonusCoins;
-              storage.setItem('dinoCoins', state.totalCoins.toString());
+              storage.setItem('dinoTotalCoins', state.totalCoins.toString());
               
               state.effects.push({ type: 'eval_text_warp', text: `+${bonusCoins} COINS!`, color: '#fbbf24', timer: 1.5, y: LOGICAL_HEIGHT / 2 - 80 });
               
@@ -1178,7 +1212,7 @@
                     } else if (item.type === 'coin') {
                         item.collected = true;
                         state.totalCoins++;
-                        storage.setItem('dinoCoins', state.totalCoins.toString());
+                        storage.setItem('dinoTotalCoins', state.totalCoins.toString());
                         // Particle effect
                         for(let k=0; k<8; k++){
                             const a = Math.random() * Math.PI * 2;
