@@ -146,6 +146,7 @@
         </div>
 
         <button class="retry-button" id="rankingBtn" style="background: linear-gradient(135deg, #a855f7, #9333ea); box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.4); margin-bottom: 1rem; font-size: 1.2rem; padding: 1rem;">RANKING</button>
+        <button class="retry-button" id="continueBtn" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4); margin-bottom: 1rem; font-size: 1.2rem; padding: 1rem; display: none;">CONTINUE</button>
         <button class="retry-button" id="retryButton">START</button>
       </div>
 
@@ -160,22 +161,41 @@
       </div>
 
       <!-- Shop Overlay -->
-      <div class="game-over-overlay" id="shopOverlay">
-        <h2 class="game-over-title" style="background: linear-gradient(to right, #facc15, #f59e0b); -webkit-background-clip: text; font-size: 3.5rem;">SHOP</h2>
+      <div class="game-over-overlay" id="shopOverlay" style="overflow-y: auto; padding-top: 2rem;">
+        <h2 class="game-over-title" style="background: linear-gradient(to right, #facc15, #f59e0b); -webkit-background-clip: text; font-size: 3rem;">SHOP</h2>
         
-        <div style="margin: 1.5rem 0; font-size: 1.5rem; font-weight: bold; color: #fff;">
+        <div style="margin: 0.5rem 0 1.5rem 0; font-size: 1.5rem; font-weight: bold; color: #fff;">
           Coins: <span id="shopCoins" style="color: #facc15;">0</span>
         </div>
         
-        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 2rem; border: 2px solid rgba(250,204,21,0.3);">
-            <div style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #cbd5e1; font-weight: bold;">BASE DAMAGE</div>
-            <div style="font-size: 2.5rem; font-weight: 900; margin-bottom: 1rem; color: #38bdf8;">Lv. <span id="shopBaseDamage">1</span></div>
-            <button class="retry-button" id="upgradeBtn" style="padding: 1rem; width: 100%; font-size: 1.2rem; border-radius: 12px; background: linear-gradient(135deg, #facc15, #eab308); color: #000;">
+        <!-- Base Damage -->
+        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1rem; border: 2px solid rgba(250,204,21,0.3);">
+            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #cbd5e1; font-weight: bold;">BASE DAMAGE (Max 10)</div>
+            <div style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #38bdf8;">Lv. <span id="shopBaseDamage">1</span></div>
+            <button class="retry-button" id="upgradeBtn" style="padding: 0.8rem; width: 100%; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #facc15, #eab308); color: #000;">
                 UPGRADE (<span id="upgradeCost">100</span>)
             </button>
         </div>
 
-        <button class="retry-button" id="closeShopBtn" style="background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 10px 15px -3px rgba(100, 116, 139, 0.4); padding: 1rem; width: 80%; max-width: 300px; font-size: 1.2rem; border-radius: 12px;">CLOSE</button>
+        <!-- Explosion Damage -->
+        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1rem; border: 2px solid rgba(248,113,113,0.3);">
+            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #fca5a5; font-weight: bold;">EXPLOSION (1st hit only, Max 10)</div>
+            <div style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #f87171;">Lv. <span id="shopExplosion">0</span></div>
+            <button class="retry-button" id="upgradeExplosionBtn" style="padding: 0.8rem; width: 100%; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #f87171, #dc2626); color: #fff;">
+                UPGRADE (<span id="costExplosion">150</span>)
+            </button>
+        </div>
+
+        <!-- Penetration -->
+        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1.5rem; border: 2px solid rgba(192,132,252,0.3);">
+            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #d8b4fe; font-weight: bold;">PENETRATE (1st hit only, Max 1)</div>
+            <div style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #c084fc;">Lv. <span id="shopPenetration">0</span></div>
+            <button class="retry-button" id="upgradePenetrationBtn" style="padding: 0.8rem; width: 100%; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #c084fc, #9333ea); color: #fff;">
+                UPGRADE (<span id="costPenetration">500</span>)
+            </button>
+        </div>
+
+        <button class="retry-button" id="closeShopBtn" style="background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 10px 15px -3px rgba(100, 116, 139, 0.4); padding: 1rem; width: 80%; max-width: 300px; font-size: 1.2rem; border-radius: 12px; margin-bottom: 2rem;">CLOSE</button>
       </div>
 
       <!-- Ranking Overlay -->
@@ -194,7 +214,8 @@
   <script>
     const storage = {
       getItem: (key) => { try { return localStorage.getItem(key); } catch(e) { return null; } },
-      setItem: (key, val) => { try { localStorage.setItem(key, val); } catch(e) {} }
+      setItem: (key, val) => { try { localStorage.setItem(key, val); } catch(e) {} },
+      removeItem: (key) => { try { localStorage.removeItem(key); } catch(e) {} }
     };
 
     const LOGICAL_WIDTH = 700;
@@ -240,13 +261,26 @@
       const items = [];
       
       if (score > 0 && score % 50 === 0) {
+          let bossType = 'boss';
+          let shield = null;
+          
+          if (score % 500 === 0) {
+              bossType = 'boss_muddy';
+          } else if (score >= 150) {
+              bossType = Math.random() < 0.5 ? 'boss_iron' : 'boss';
+              if (bossType === 'boss') shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
+          } else if (score >= 100) {
+              shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
+          }
+
           blocks.push({
               id: Math.random().toString(36).substring(7),
               col: 2,
               row,
               hp: 1500 + score * 20,
               maxHp: 1500 + score * 20,
-              type: 'boss',
+              type: bossType,
+              shield: shield,
               shape: 'square',
               width: 3,
               isTransparent: false,
@@ -263,6 +297,7 @@
          blockCols.push(Math.floor(Math.random() * GRID_COLS));
       }
 
+      let addBallCount = 0;
       for (let c = 0; c < GRID_COLS; c++) {
         if (blockCols.includes(c)) {
           const hp = score + Math.floor(Math.random() * (score * 0.5));
@@ -306,8 +341,17 @@
              if (itemRand < 0.1) type = 'thunder_v';
              else if (itemRand < 0.2) type = 'thunder_h';
              else if (itemRand < 0.3) type = 'split';
-             else if (itemRand < 0.5) type = 'coin';
+             else if (itemRand < 0.75) type = 'coin';
           }
+          
+          if (type === 'add_ball') {
+              if (addBallCount >= 1) {
+                  type = 'coin';
+              } else {
+                  addBallCount++;
+              }
+          }
+          
           items.push({ id: Math.random().toString(36).substring(7), col: c, row, type, collected: false, triggered: false });
         }
       }
@@ -318,8 +362,10 @@
       status: 'START_SCREEN',
       previousStatus: null,
       selectedChar: storage.getItem('dinoSelectedChar') || 'original',
-      totalCoins: parseInt(storage.getItem('dinoCoins')) || 0,
+      totalCoins: parseInt(storage.getItem('dinoTotalCoins')) || 0,
       baseDamage: parseInt(storage.getItem('dinoBaseDamage')) || 1,
+      explosionLevel: parseInt(storage.getItem('explosionLevel')) || 0,
+      penetrationLevel: parseInt(storage.getItem('penetrationLevel')) || 0,
       particles: [],
       warpBlocks: [],
       effects: [],
@@ -359,6 +405,7 @@
     const ctx = canvas.getContext('2d');
     const scoreText = document.getElementById('scoreText');
     const highScoreText = document.getElementById('highScoreText');
+    const topCoinText = document.getElementById('topCoinText');
     const gameOverOverlay = document.getElementById('gameOverOverlay');
     const retryButton = document.getElementById('retryButton');
     const overlayTitle = document.getElementById('overlayTitle');
@@ -392,6 +439,7 @@
     const closeRankingBtn = document.getElementById('closeRankingBtn');
 
     rankingBtn.addEventListener('click', () => {
+        rankingList.innerHTML = '';
         if (leaderboard.length === 0) {
             rankingList.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 2rem;">No players yet.<br>Be the first!</div>';
         }
@@ -453,16 +501,45 @@
     });
 
     const updateShopUI = () => {
-        const cost = 100 + (state.baseDamage - 1) * 50;
+        const costBase = 100 + (state.baseDamage - 1) * 50;
+        const costExpl = 150 + (state.explosionLevel) * 100;
+        const costPen = 500;
+        
         document.getElementById('shopCoins').innerText = state.totalCoins || 0;
-        document.getElementById('shopBaseDamage').innerText = state.baseDamage || 1;
-        document.getElementById('upgradeCost').innerText = cost;
-        document.getElementById('upgradeBtn').style.opacity = state.totalCoins >= cost ? '1' : '0.5';
+        
+        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 10 ? 'MAX' : state.baseDamage;
+        if (state.baseDamage >= 10) {
+            document.getElementById('upgradeBtn').innerText = 'MAX LEVEL';
+            document.getElementById('upgradeBtn').style.opacity = '0.5';
+        } else {
+            document.getElementById('upgradeBtn').innerHTML = `UPGRADE (<span id="upgradeCost">${costBase}</span>)`;
+            document.getElementById('upgradeBtn').style.opacity = state.totalCoins >= costBase ? '1' : '0.5';
+        }
+        
+        document.getElementById('shopExplosion').innerText = state.explosionLevel >= 10 ? 'MAX' : state.explosionLevel;
+        if (state.explosionLevel >= 10) {
+            document.getElementById('upgradeExplosionBtn').innerText = 'MAX LEVEL';
+            document.getElementById('upgradeExplosionBtn').style.opacity = '0.5';
+        } else {
+            document.getElementById('upgradeExplosionBtn').innerHTML = `UPGRADE (<span id="costExplosion">${costExpl}</span>)`;
+            document.getElementById('upgradeExplosionBtn').style.opacity = state.totalCoins >= costExpl ? '1' : '0.5';
+        }
+        
+        document.getElementById('shopPenetration').innerText = state.penetrationLevel >= 1 ? 'MAX' : state.penetrationLevel;
+        if (state.penetrationLevel >= 1) {
+            document.getElementById('upgradePenetrationBtn').innerText = 'MAX LEVEL';
+            document.getElementById('upgradePenetrationBtn').style.opacity = '0.5';
+        } else {
+            document.getElementById('upgradePenetrationBtn').innerHTML = `UPGRADE (<span id="costPenetration">${costPen}</span>)`;
+            document.getElementById('upgradePenetrationBtn').style.opacity = state.totalCoins >= costPen ? '1' : '0.5';
+        }
     };
 
     const openShopBtn = document.getElementById('openShopBtn');
     const closeShopBtn = document.getElementById('closeShopBtn');
     const upgradeBtn = document.getElementById('upgradeBtn');
+    const upgradeExplosionBtn = document.getElementById('upgradeExplosionBtn');
+    const upgradePenetrationBtn = document.getElementById('upgradePenetrationBtn');
     const shopOverlay = document.getElementById('shopOverlay');
 
     openShopBtn.addEventListener('click', () => {
@@ -472,32 +549,43 @@
     });
 
     closeShopBtn.addEventListener('click', () => {
-        state.status = 'PAUSED'; // returning to pause menu
+        state.status = 'PAUSED';
         updateUI();
     });
 
     upgradeBtn.addEventListener('click', () => {
         const cost = 100 + (state.baseDamage - 1) * 50;
-        if (state.totalCoins >= cost) {
+        if (state.totalCoins >= cost && state.baseDamage < 10) {
             state.totalCoins -= cost;
             state.baseDamage++;
-            storage.setItem('dinoCoins', state.totalCoins.toString());
+            storage.setItem('dinoTotalCoins', state.totalCoins.toString());
             storage.setItem('dinoBaseDamage', state.baseDamage.toString());
             updateShopUI();
             topCoinText.innerText = state.totalCoins;
-            
-            // Effect
-            for(let k=0; k<15; k++){
-                const a = Math.random() * Math.PI * 2;
-                const s = Math.random() * 5 + 2;
-                state.particles.push({
-                    x: LOGICAL_WIDTH / 2,
-                    y: LOGICAL_HEIGHT / 2,
-                    vx: Math.cos(a) * s,
-                    vy: Math.sin(a) * s,
-                    life: 1.5, maxLife: 1.5, color: '#fde047'
-                });
-            }
+        }
+    });
+    
+    upgradeExplosionBtn.addEventListener('click', () => {
+        const cost = 150 + (state.explosionLevel) * 100;
+        if (state.totalCoins >= cost && state.explosionLevel < 10) {
+            state.totalCoins -= cost;
+            state.explosionLevel++;
+            storage.setItem('dinoTotalCoins', state.totalCoins.toString());
+            storage.setItem('explosionLevel', state.explosionLevel.toString());
+            updateShopUI();
+            topCoinText.innerText = state.totalCoins;
+        }
+    });
+
+    upgradePenetrationBtn.addEventListener('click', () => {
+        const cost = 500;
+        if (state.totalCoins >= cost && state.penetrationLevel < 1) {
+            state.totalCoins -= cost;
+            state.penetrationLevel++;
+            storage.setItem('dinoTotalCoins', state.totalCoins.toString());
+            storage.setItem('penetrationLevel', state.penetrationLevel.toString());
+            updateShopUI();
+            topCoinText.innerText = state.totalCoins;
         }
     });
 
@@ -515,6 +603,29 @@
       topCoinText.innerText = state.totalCoins || 0;
       if (state.status === 'GAME_OVER' || state.status === 'START_SCREEN') {
         overlayTitle.innerText = state.status === 'GAME_OVER' ? 'GAME OVER' : 'DINO BALLZ';
+        if (state.status === 'START_SCREEN') {
+          let hasSave = false;
+          try {
+              const rawSave = storage.getItem('dinoSaveState');
+              if (rawSave && rawSave !== 'null' && rawSave !== 'undefined') {
+                  const parsed = JSON.parse(rawSave);
+                  if (parsed && typeof parsed === 'object') {
+                      hasSave = true;
+                  }
+              }
+          } catch(e) {
+              console.error("Corrupted save detected on UI update", e);
+              storage.removeItem('dinoSaveState');
+          }
+          
+          if (hasSave) {
+              document.getElementById('continueBtn').style.display = 'block';
+              document.getElementById('retryButton').innerText = 'NEW GAME';
+          } else {
+              document.getElementById('continueBtn').style.display = 'none';
+              document.getElementById('retryButton').innerText = 'START';
+          }
+        }
         gameOverOverlay.classList.add('active');
         pauseOverlay.classList.remove('active');
         rankingOverlay.classList.remove('active');
@@ -565,7 +676,7 @@
         launched: false,
         isLeader: idx === 0,
         bounceCount: 0,
-        history: [], // For ball trails
+        history: [], 
         hitCount: 0
       }));
 
@@ -583,7 +694,6 @@
     let isDragging = false; 
 
     const handleInputDown = (pt) => {
-      // Fast drop button logic
       if ((state.status === 'SHOOTING' || state.status === 'RESOLVING') && pt.y > LOGICAL_HEIGHT - 90 && pt.x > LOGICAL_WIDTH - 90) {
           state.balls.forEach(b => {
              if(b.active || !b.launched) {
@@ -644,40 +754,83 @@
     });
 
     retryButton.addEventListener('click', () => {
-      const initRow = generateRow(1, 1);
-      const startingBalls = state.selectedChar === 'orange' ? 11 : 1;
-      
-      state = {
-        selectedChar: state.selectedChar,
-        totalCoins: state.totalCoins || 0,
-        baseDamage: state.baseDamage || 1,
-        status: 'AIMING',
-        particles: [],
-        warpBlocks: [],
-        balls: [],
-        blocks: initRow.blocks,
-        items: initRow.items,
-        effects: [],
-        score: 1,
-        bossWarningTimer: 0,
-        bossWarningText: '',
-        ballsTotal: startingBalls,
-        addedBallsNextTurn: 0,
-        startX: LOGICAL_WIDTH / 2,
-        firstReturnX: null,
-        targetPoint: null,
-        shootTimer: 0,
-        ballsLaunched: 0,
-        blocksCountAtStart: 0,
-        warpCounter: 0,
-        warpTimer: 0,
-        turnTimer: 0,
-        speedMult: 1.0,
-        bossDefeatedThisTurn: false,
-        username: state.username,
-        lastPlayTimestamp: state.lastPlayTimestamp
-      };
-      updateUI();
+        if (state.status === 'START_SCREEN' || state.status === 'GAME_OVER') {
+            storage.removeItem('dinoSaveState');
+            const username = usernameInput.value.trim() || "Player";
+            storage.setItem('dinoUsername', username);
+            const initRow = generateRow(1, 1);
+            const startingBalls = state.selectedChar === 'orange' ? 11 : 1;
+            
+            state = {
+                status: 'AIMING',
+                selectedChar: state.selectedChar,
+                totalCoins: state.totalCoins || 0,
+                baseDamage: state.baseDamage || 1,
+                explosionLevel: state.explosionLevel || 0,
+                penetrationLevel: state.penetrationLevel || 0,
+                particles: [],
+                warpBlocks: [],
+                balls: [],
+                blocks: initRow.blocks,
+                items: initRow.items,
+                effects: [],
+                score: 1,
+                bossWarningTimer: 0,
+                bossWarningText: '',
+                ballsTotal: startingBalls,
+                addedBallsNextTurn: 0,
+                startX: LOGICAL_WIDTH / 2,
+                firstReturnX: null,
+                targetPoint: null,
+                shootTimer: 0,
+                ballsLaunched: 0,
+                blocksCountAtStart: 0,
+                warpCounter: 0,
+                warpTimer: 0,
+                turnTimer: 0,
+                speedMult: 1.0,
+                bossDefeatedThisTurn: false,
+                username: username,
+                lastPlayTimestamp: state.lastPlayTimestamp
+            };
+            updateUI();
+        }
+    });
+
+    const continueBtn = document.getElementById('continueBtn');
+    continueBtn.addEventListener('click', () => {
+        let saved = null;
+        try {
+            const saveStateStr = storage.getItem('dinoSaveState');
+            if (!saveStateStr || saveStateStr === 'null' || saveStateStr === 'undefined') {
+                return;
+            }
+            saved = JSON.parse(saveStateStr);
+        } catch(e) {
+            console.error("Save load error", e);
+            storage.removeItem('dinoSaveState');
+            return;
+        }
+        
+        if (saved && state.status === 'START_SCREEN') {
+            const username = usernameInput.value.trim() || "Player";
+            storage.setItem('dinoUsername', username);
+            
+            state.username = username;
+            state.status = 'AIMING';
+            state.score = saved.score || 1;
+            state.ballsTotal = saved.ballsTotal || 1;
+            state.blocks = saved.blocks || [];
+            state.items = saved.items || [];
+            state.startX = saved.startX || LOGICAL_WIDTH / 2;
+            state.addedBallsNextTurn = 0;
+            state.ballsLaunched = 0;
+                state.balls = [];
+                state.particles = [];
+                state.warpBlocks = [];
+                state.effects = [];
+                updateUI();
+        }
     });
 
     const triggerThunder = (item) => {
@@ -905,6 +1058,7 @@
            b.y += b.vy * subDt;
 
              let wallBounced = false;
+             let isCollidingWithAnyBlock = false;
              if (b.x - BALL_RADIUS < 0) { b.x = BALL_RADIUS; b.vx *= -1; b.hitCount++; wallBounced = true; }
              if (b.x + BALL_RADIUS > LOGICAL_WIDTH) { b.x = LOGICAL_WIDTH - BALL_RADIUS; b.vx *= -1; b.hitCount++; wallBounced = true; }
              if (b.y - BALL_RADIUS < 0) { b.y = BALL_RADIUS; b.vy *= -1; b.hitCount++; wallBounced = true; }
@@ -920,7 +1074,7 @@
 
              if (b.vy > 0 && b.y + BALL_RADIUS > DOTTED_LINE_Y) {
                let shouldBounce = false;
-               if (state.selectedChar === 'dino' && b.bounceCount < 2) {
+               if (b.isLeader && state.selectedChar === 'dino' && b.bounceCount < 2) {
                    shouldBounce = true;
                    b.bounceCount++;
                }
@@ -931,9 +1085,13 @@
                } else {
                    b.active = false;
                    b.history = []; // Clear trail
-                   b.y = FLOOR_Y - BALL_RADIUS;
-                   if (state.firstReturnX === null) {
-                     state.firstReturnX = b.x;
+                   if (b.isLeader) {
+                       b.y = FLOOR_Y - BALL_RADIUS;
+                       if (state.firstReturnX === null) {
+                         state.firstReturnX = b.x;
+                       }
+                   } else {
+                       b.destroyed = true;
                    }
                    break;
                }
@@ -943,9 +1101,13 @@
              if (b.vy > 0 && b.y + BALL_RADIUS > FLOOR_Y) {
                  b.active = false;
                  b.history = [];
-                 b.y = FLOOR_Y - BALL_RADIUS;
-                 if (state.firstReturnX === null) {
-                   state.firstReturnX = b.x;
+                 if (b.isLeader) {
+                     b.y = FLOOR_Y - BALL_RADIUS;
+                     if (state.firstReturnX === null) {
+                       state.firstReturnX = b.x;
+                     }
+                 } else {
+                     b.destroyed = true;
                  }
                  break;
              }
@@ -971,7 +1133,7 @@
                     if (item.type === 'split') {
                         item.triggered = true; // Flags for removal at turn end
                         
-                        if (!b.isSplitClone && state.balls.length < 300) {
+                        if (!b.isSplitClone && state.balls.length < 3000) {
                             const angle = Math.atan2(b.vy, b.vx);
                             const speed = BALL_SPEED;
                             const jitter1 = (Math.PI / 6) + Math.random() * (Math.PI / 6);
@@ -1095,9 +1257,33 @@
                    continue;
                }
                  
-                let damage = state.baseDamage;
-                if (state.selectedChar === 'punch') damage += 1; 
-                if (state.selectedChar === 'dino' && b.isLeader) damage += Math.max(1, state.baseDamage); 
+                isCollidingWithAnyBlock = true;
+                 
+                let isFirstHit = b.isLeader && !b.hasHitBlock;
+                if (isFirstHit) {
+                    b.hasHitBlock = true;
+                    if (state.penetrationLevel > 0) {
+                        b.penetrationMode = true;
+                        b.penetratedBlocks = new Set();
+                    }
+                }
+                
+                let skipDamage = false;
+                if (b.penetrationMode && b.penetratedBlocks && b.penetratedBlocks.has(block.id)) {
+                    skipDamage = true;
+                }
+                  
+                let damage = b.isLeader ? state.baseDamage : 1;
+                if (b.isLeader) {
+                    if (state.selectedChar === 'punch') damage += 1; 
+                    if (state.selectedChar === 'dino') damage += Math.max(1, state.baseDamage); 
+                }
+
+                let applyExplosion = false;
+                if (isFirstHit && state.explosionLevel > 0) {
+                    damage = 0;
+                    applyExplosion = true;
+                }
 
                 let multiplier = 1;
                if (b.hitCount >= 200) multiplier = 5;
@@ -1125,41 +1311,91 @@
                }
 
                const prevHp = block.hp;
-               if (instantKill) {
-                   block.hp = 0;
-               } else {
-                   block.hp -= damage;
+               if (!skipDamage) {
+                   if (instantKill) {
+                       block.hp = 0;
+                   } else {
+                       block.hp -= damage;
+                   }
+                   if (b.penetrationMode && b.penetratedBlocks) {
+                       b.penetratedBlocks.add(block.id);
+                   }
                }
                
-               b.hitCount++;
-               
-               if (multiplier > 1 && damage > 0 && block.hp < prevHp) {
-                   state.effects.push({
-                       type: 'damage_popup',
-                       text: damage.toString(),
-                       x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                       y: closestY - 20,
-                       timer: 0.6,
-                       scale: multiplier === 5 ? 1.5 : 1.2,
-                       isBlue: multiplier === 5
+               if (applyExplosion) {
+                   const expDmg = state.explosionLevel;
+                   const targetCol = block.col;
+                   const targetRow = block.row;
+                   
+                   state.blocks.forEach(nb => {
+                       if (nb.hp > 0 && !nb.isTransparent && Math.abs(nb.col - targetCol) <= 1 && Math.abs(nb.row - targetRow) <= 1) {
+                           nb.hp -= expDmg;
+                           nb.hitTimer = 0.1;
+                           
+                           state.effects.push({
+                               type: 'damage_popup',
+                               text: expDmg.toString(),
+                               x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                               y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2 - 10,
+                               timer: 0.5,
+                               scale: 1.2,
+                               isBlue: false,
+                               color: '#ef4444' // Red color for explosion
+                           });
+                       }
                    });
+                   
+                   for(let k=0; k<20; k++){
+                       const a = Math.random() * Math.PI * 2;
+                       const s = Math.random() * 6 + 2;
+                       state.particles.push({
+                           x: closestX,
+                           y: closestY,
+                           vx: Math.cos(a) * s,
+                           vy: Math.sin(a) * s,
+                           life: 1.5, maxLife: 1.5, color: '#f87171'
+                       });
+                   }
                }
                
-               if (damage > 0 || instantKill) {
-                   block.hitTimer = 0.1; // Trigger flash only if damaged
+               if (!skipDamage) {
+                   b.hitCount++;
+                   
+                   if (multiplier > 1 && damage > 0 && block.hp < prevHp) {
+                       state.effects.push({
+                           type: 'damage_popup',
+                           text: damage.toString(),
+                           x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                           y: closestY - 20,
+                           timer: 0.6,
+                           scale: multiplier === 5 ? 1.5 : 1.2,
+                           isBlue: multiplier === 5
+                       });
+                   }
+                   
+                   if (damage > 0 || instantKill || applyExplosion) {
+                       block.hitTimer = 0.1; // Trigger flash only if damaged
+                   }
                }
                
-               if (block.type === 'muddy' || block.type === 'slime') {
+               if (block.type === 'muddy' || block.type === 'slime' || block.type === 'boss_muddy') {
                    b.active = false;
                    b.history = [];
-                   b.y = FLOOR_Y - BALL_RADIUS;
-                   if (state.firstReturnX === null) state.firstReturnX = b.x;
+                   if (b.isLeader) {
+                       b.y = FLOOR_Y - BALL_RADIUS;
+                       if (state.firstReturnX === null) state.firstReturnX = b.x;
+                   } else {
+                       b.destroyed = true;
+                   }
                    break;
                }
 
                let penetrate = false;
                if (state.selectedChar === 'punch' && prevHp <= damage) {
                    penetrate = true; 
+               }
+               if (b.penetrationMode) {
+                   penetrate = true;
                }
 
                if (!penetrate) {
@@ -1200,6 +1436,11 @@
                }
                break;
              }
+             
+             if (!isCollidingWithAnyBlock && b.penetrationMode) {
+                 b.penetrationMode = false;
+                 if (b.penetratedBlocks) b.penetratedBlocks.clear();
+             }
         }
       }
 
@@ -1216,11 +1457,18 @@
                      b.hp = state.score + Math.floor(Math.random() * (state.score * 0.5));
                      b.type = 'normal';
                      spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
+                 } else if (b.type === 'boss_iron') {
+                     b.hp = 1500 + state.score * 20; // restore HP as normal boss
+                     b.type = 'boss'; // becomes normal boss
+                     spawnParticles(bx, by, '#94a3b8', 50); // Heavy metal fragments
+                 } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy') {
+                     bossDefeated = true;
+                     spawnParticles(bx, by, '#f43f5e', 50);
+                     state.blocks.splice(i, 1);
                  } else {
                      let mainColor = '#38bdf8';
                      if (b.type === 'muddy' || b.type === 'slime') mainColor = '#4ade80';
                      else if (b.type === 'ghost') mainColor = '#c084fc';
-                     else if (b.type === 'boss') { mainColor = '#f43f5e'; bossDefeated = true; }
                      else mainColor = `hsl(${Math.max(0, 200 - b.hp * 2)}, 80%, 60%)`;
                      
                      spawnParticles(bx, by, mainColor, 15);
@@ -1329,12 +1577,17 @@
                    if (b.row + 1 === GRID_ROWS - 1) {
                        newShield = null; // Last row, shield disappears
                    } else {
-                       const nextShield = { 'top': 'right', 'right': 'bottom', 'bottom': 'left', 'left': 'top' };
-                       newShield = nextShield[newShield];
+                       if (b.type.startsWith('boss')) {
+                           const sides = ['top', 'right', 'bottom', 'left'];
+                           newShield = sides[Math.floor(Math.random() * sides.length)];
+                       } else {
+                           const nextShield = { 'top': 'right', 'right': 'bottom', 'bottom': 'left', 'left': 'top' };
+                           newShield = nextShield[newShield];
+                       }
                    }
                }
                let newCol = b.col;
-               if (b.type === 'boss') {
+               if (b.type.startsWith('boss')) {
                    const slide = Math.floor(Math.random() * 3) - 1;
                    newCol += slide;
                    if (newCol < 0) newCol = 0;
@@ -1349,6 +1602,7 @@
 
              if (gameOver) {
                state.status = 'GAME_OVER';
+               storage.removeItem('dinoSaveState'); // Clear save on death
                
                const currentEntry = { name: state.username, score: state.score, timestamp: Date.now() };
                leaderboard.push(currentEntry);
@@ -1365,7 +1619,15 @@
                state.status = 'AIMING';
                state.balls = [];
                state.firstReturnX = null;
-             }
+                
+                storage.setItem('dinoSaveState', JSON.stringify({
+                    score: state.score,
+                    ballsTotal: state.ballsTotal,
+                    blocks: state.blocks,
+                    items: state.items,
+                    startX: state.startX
+                }));
+              }
              updateUI();
           }
         }
@@ -1679,6 +1941,10 @@
         let mainColor, highlightColor;
         if (block.type === 'iron') {
            mainColor = '#64748b'; highlightColor = '#94a3b8';
+        } else if (block.type === 'boss_iron') {
+           mainColor = '#475569'; highlightColor = '#94a3b8';
+        } else if (block.type === 'boss_muddy') {
+           mainColor = '#4d7c0f'; highlightColor = '#84cc16';
         } else if (block.type === 'boss') {
            mainColor = '#ef4444'; highlightColor = '#fca5a5';
         } else if (block.type === 'muddy' || block.type === 'slime') {
@@ -1739,23 +2005,63 @@
             ctx.beginPath(); ctx.arc(x + margin + sizeW - 8, y + margin + 8, boltRadius, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(x + margin + 8, y + margin + sizeH - 8, boltRadius, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(x + margin + sizeW - 8, y + margin + sizeH - 8, boltRadius, 0, Math.PI*2); ctx.fill();
-        } else if (block.type === 'boss') {
-            // Boss dino body
-            ctx.fillStyle = mainColor;
-            ctx.beginPath();
-            ctx.roundRect(x + margin, y + margin, sizeW, sizeH, 16);
-            ctx.fill();
+        } else if (block.type.startsWith('boss')) {
+            if (block.type === 'boss_iron') {
+                const grad = ctx.createLinearGradient(x + margin, y + margin, x + sizeW + margin, y + sizeH + margin);
+                grad.addColorStop(0, highlightColor);
+                grad.addColorStop(0.5, mainColor);
+                grad.addColorStop(1, '#1e293b');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.roundRect(x + margin, y + margin, sizeW, sizeH, 16);
+                ctx.fill();
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#cbd5e1';
+                const boltRadius = 4;
+                ctx.beginPath(); ctx.arc(x + margin + 12, y + margin + 12, boltRadius, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + margin + sizeW - 12, y + margin + 12, boltRadius, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + margin + 12, y + margin + sizeH - 12, boltRadius, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + margin + sizeW - 12, y + margin + sizeH - 12, boltRadius, 0, Math.PI*2); ctx.fill();
+            } else if (block.type === 'boss_muddy') {
+                const grad = ctx.createRadialGradient(x + margin + sizeW/2, y + margin + sizeH/2, 10, x + margin + sizeW/2, y + margin + sizeH/2, sizeW);
+                grad.addColorStop(0, highlightColor);
+                grad.addColorStop(1, mainColor);
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.roundRect(x + margin, y + margin, sizeW, sizeH, 16);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.beginPath(); ctx.arc(x + margin + 20, y + margin + 25, 8, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + margin + sizeW - 25, y + margin + 40, 12, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + margin + sizeW/2, y + margin + sizeH - 20, 10, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.fillStyle = mainColor;
+                ctx.beginPath();
+                ctx.roundRect(x + margin, y + margin, sizeW, sizeH, 16);
+                ctx.fill();
+            }
+            
             // Spikes on back
             ctx.fillStyle = highlightColor;
             ctx.beginPath(); ctx.moveTo(x + margin, y + margin + 15); ctx.lineTo(x + margin - 15, y + margin + 35); ctx.lineTo(x + margin, y + margin + 55); ctx.fill();
             ctx.beginPath(); ctx.moveTo(x + margin, y + margin + 45); ctx.lineTo(x + margin - 18, y + margin + 65); ctx.lineTo(x + margin, y + margin + 85); ctx.fill();
+            
             // Eye
-            ctx.fillStyle = '#7f1d1d';
+            ctx.fillStyle = block.type === 'boss_muddy' ? '#3f6212' : '#7f1d1d';
             ctx.beginPath(); ctx.arc(x + margin + sizeW * 0.65, y + margin + sizeH * 0.35, 12, 0, Math.PI*2); ctx.fill();
+            
             // Angry eyebrow
-            ctx.lineWidth = 5; ctx.strokeStyle = '#7f1d1d'; ctx.beginPath(); ctx.moveTo(x + margin + sizeW * 0.55, y + margin + sizeH * 0.25); ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH * 0.30); ctx.stroke();
+            ctx.lineWidth = 5; ctx.strokeStyle = block.type === 'boss_muddy' ? '#3f6212' : '#7f1d1d'; ctx.beginPath(); ctx.moveTo(x + margin + sizeW * 0.55, y + margin + sizeH * 0.25); ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH * 0.30); ctx.stroke();
+            
             // Teeth
-            ctx.fillStyle = '#7f1d1d';
+            ctx.fillStyle = block.type === 'boss_muddy' ? '#3f6212' : '#7f1d1d';
             ctx.beginPath(); 
             ctx.moveTo(x + margin + sizeW * 0.65, y + margin + sizeH); 
             ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH - 18); 
@@ -1818,7 +2124,8 @@
 
         // White flash when hit
         if (block.hitTimer > 0) {
-           ctx.fillStyle = `rgba(255, 255, 255, ${block.hitTimer / 0.1})`;
+           const flashAlpha = (block.hitTimer / 0.1) * 0.5;
+           ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
            drawShape();
            ctx.fill();
         }
@@ -1835,12 +2142,17 @@
             else if (block.shape === 'triangle_br') { tx = x + BLOCK_SIZE * 0.65; ty = y + BLOCK_SIZE * 0.65; }
         }
 
-        ctx.fillStyle = '#fff';
         ctx.font = `bold ${fontSize}px "Nunito", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.shadowColor = '#000';
         ctx.shadowBlur = 4;
+        
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.lineWidth = 3;
+        ctx.strokeText(block.hp.toString(), tx, ty);
+        
+        ctx.fillStyle = '#fff';
         ctx.fillText(block.hp.toString(), tx, ty);
         ctx.shadowBlur = 0;
         
@@ -2026,11 +2338,11 @@
                ctx.translate(eff.x, eff.y - (1 - p) * 50); // Float up
                ctx.scale(eff.scale, eff.scale);
                ctx.globalAlpha = p < 0.2 ? p / 0.2 : 1;
-               ctx.fillStyle = eff.isBlue ? '#60a5fa' : '#fef08a';
+               ctx.fillStyle = eff.color ? eff.color : (eff.isBlue ? '#60a5fa' : '#fef08a');
                ctx.font = '900 24px "Nunito", sans-serif';
                ctx.textAlign = 'center';
                ctx.textBaseline = 'middle';
-               ctx.shadowColor = eff.isBlue ? '#3b82f6' : '#eab308';
+               ctx.shadowColor = eff.color ? eff.color : (eff.isBlue ? '#3b82f6' : '#eab308');
                ctx.shadowBlur = 10;
                ctx.fillText(eff.text, 0, 0);
            }
@@ -2107,6 +2419,7 @@
               
               ctx.beginPath();
               if (!ball.active) {
+                if (ball.destroyed) return;
                 const drawX = state.firstReturnX !== null ? state.firstReturnX : ball.x;
                 ctx.arc(drawX, LOGICAL_HEIGHT - 20, radius, 0, Math.PI * 2);
               } else {
