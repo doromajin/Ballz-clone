@@ -277,8 +277,8 @@
               id: Math.random().toString(36).substring(7),
               col: 2,
               row,
-              hp: 1500 + score * 20,
-              maxHp: 1500 + score * 20,
+              hp: 500 + score * 15,
+              maxHp: 500 + score * 15,
               type: bossType,
               shield: shield,
               shape: 'square',
@@ -300,7 +300,9 @@
       let addBallCount = 0;
       for (let c = 0; c < GRID_COLS; c++) {
         if (blockCols.includes(c)) {
-          const hp = score + Math.floor(Math.random() * (score * 0.5));
+          let baseHp = score <= 20 ? Math.ceil(score * 0.5) + Math.floor(Math.random() * score * 0.3) : score + Math.floor(Math.random() * (score * 0.5));
+          if (baseHp < 1) baseHp = 1;
+          const hp = baseHp;
           let type = 'normal';
           let shape = 'square';
           let shield = null;
@@ -375,7 +377,7 @@
       score: 0,
       bossWarningTimer: 0,
       bossWarningText: '',
-      ballsTotal: 1,
+      ballsTotal: 5,
       addedBallsNextTurn: 0,
       startX: LOGICAL_WIDTH / 2,
       firstReturnX: null,
@@ -501,9 +503,9 @@
     });
 
     const updateShopUI = () => {
-        const costBase = 100 + (state.baseDamage - 1) * 50;
-        const costExpl = 150 + (state.explosionLevel) * 100;
-        const costPen = 500;
+        const costBase = 50 + (state.baseDamage - 1) * 30;
+        const costExpl = 100 + (state.explosionLevel) * 50;
+        const costPen = 300;
         
         document.getElementById('shopCoins').innerText = state.totalCoins || 0;
         
@@ -554,7 +556,7 @@
     });
 
     upgradeBtn.addEventListener('click', () => {
-        const cost = 100 + (state.baseDamage - 1) * 50;
+        const cost = 50 + (state.baseDamage - 1) * 30;
         if (state.totalCoins >= cost && state.baseDamage < 10) {
             state.totalCoins -= cost;
             state.baseDamage++;
@@ -566,7 +568,7 @@
     });
     
     upgradeExplosionBtn.addEventListener('click', () => {
-        const cost = 150 + (state.explosionLevel) * 100;
+        const cost = 100 + (state.explosionLevel) * 50;
         if (state.totalCoins >= cost && state.explosionLevel < 10) {
             state.totalCoins -= cost;
             state.explosionLevel++;
@@ -578,7 +580,7 @@
     });
 
     upgradePenetrationBtn.addEventListener('click', () => {
-        const cost = 500;
+        const cost = 300;
         if (state.totalCoins >= cost && state.penetrationLevel < 1) {
             state.totalCoins -= cost;
             state.penetrationLevel++;
@@ -759,7 +761,9 @@
             const username = usernameInput.value.trim() || "Player";
             storage.setItem('dinoUsername', username);
             const initRow = generateRow(1, 1);
-            const startingBalls = state.selectedChar === 'orange' ? 11 : 1;
+            let startingBalls = 5;
+            if (state.selectedChar === 'orange') startingBalls = 15;
+            else if (state.selectedChar === 'blue') startingBalls = 10;
             
             state = {
                 status: 'AIMING',
@@ -1457,7 +1461,7 @@
                      b.type = 'normal';
                      spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
                  } else if (b.type === 'boss_iron') {
-                     b.hp = 1500 + state.score * 20; // restore HP as normal boss
+                     b.hp = 500 + state.score * 15; // restore HP as normal boss
                      b.type = 'boss'; // becomes normal boss
                      spawnParticles(bx, by, '#94a3b8', 50); // Heavy metal fragments
                  } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy') {
