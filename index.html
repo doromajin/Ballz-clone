@@ -521,7 +521,7 @@
         
         document.getElementById('shopCoins').innerText = state.totalCoins || 0;
         
-        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 20 ? 'MAX' : state.baseDamage;
+        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 20 ? '20 (MAX)' : state.baseDamage;
         if (state.baseDamage >= 20) {
             document.getElementById('upgradeBtn').innerText = 'MAX LEVEL';
             document.getElementById('upgradeBtn').style.opacity = '0.5';
@@ -530,8 +530,8 @@
             document.getElementById('upgradeBtn').style.opacity = state.totalCoins >= costBase ? '1' : '0.5';
         }
         
-        document.getElementById('shopExplosion').innerText = state.explosionLevel >= 10 ? 'MAX' : state.explosionLevel;
-        if (state.explosionLevel >= 10) {
+        document.getElementById('shopExplosion').innerText = state.explosionLevel >= 20 ? '20 (MAX)' : state.explosionLevel;
+        if (state.explosionLevel >= 20) {
             document.getElementById('upgradeExplosionBtn').innerText = 'MAX LEVEL';
             document.getElementById('upgradeExplosionBtn').style.opacity = '0.5';
         } else {
@@ -591,7 +591,7 @@
     
     upgradeExplosionBtn.addEventListener('click', () => {
         const cost = 100 + (state.explosionLevel) * 50;
-        if (state.totalCoins >= cost && state.explosionLevel < 10) {
+        if (state.totalCoins >= cost && state.explosionLevel < 20) {
             state.totalCoins -= cost;
             state.explosionLevel++;
             storage.setItem('dinoTotalCoins', state.totalCoins.toString());
