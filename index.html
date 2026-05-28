@@ -284,12 +284,17 @@
               shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
           }
 
+          let bossHp = 2000 + score * 40;
+          if (bossType === 'boss_muddy') {
+              bossHp = 10000 + score * 100;
+          }
+
           blocks.push({
               id: Math.random().toString(36).substring(7),
               col: 2,
               row,
-              hp: 500 + score * 15,
-              maxHp: 500 + score * 15,
+              hp: bossHp,
+              maxHp: bossHp,
               type: bossType,
               shield: shield,
               shape: 'square',
@@ -312,7 +317,7 @@
       let addBallCount = 0;
       for (let c = 0; c < GRID_COLS; c++) {
         if (blockCols.includes(c)) {
-          let baseHp = score <= 20 ? Math.ceil(score * 0.5) + Math.floor(Math.random() * score * 0.3) : score + Math.floor(Math.random() * (score * 0.5));
+          let baseHp = score <= 20 ? Math.ceil(score * 1.5) + Math.floor(Math.random() * score * 1.0) : Math.floor(score * 2.5) + Math.floor(Math.random() * (score * 1.0));
           if (baseHp < 1) baseHp = 1;
           const hp = baseHp;
           let type = 'normal';
@@ -1564,7 +1569,7 @@
                      b.type = 'normal';
                      spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
                  } else if (b.type === 'boss_iron') {
-                     b.hp = 500 + state.score * 15; // restore HP as normal boss
+                     b.hp = 2000 + state.score * 40; // restore HP as normal boss
                      b.type = 'boss'; // becomes normal boss
                      spawnParticles(bx, by, '#94a3b8', 50); // Heavy metal fragments
                  } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy') {
