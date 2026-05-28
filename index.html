@@ -284,16 +284,10 @@
               shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
           }
 
-           let bossHp = 0;
-           if (score <= 100) {
-               bossHp = 1000 + score * 20; 
-           } else {
-               bossHp = 1000 + score * 20 + Math.pow((score - 100) / 50, 2.5) * 2000;
-           }
+           let bossHp = 1000 + score * 20 + Math.pow(score / 100, 3) * 300;
            
            if (bossType === 'boss_muddy') {
-               if (score <= 100) bossHp = 5000 + score * 50;
-               else bossHp = 5000 + score * 50 + Math.pow((score - 100) / 50, 2.5) * 8000;
+               bossHp *= 1.6; // Muddy boss gets a huge multiplier (75k+ HP at stage 500)
            }
            bossHp = Math.floor(bossHp);
 
@@ -325,12 +319,7 @@
       let addBallCount = 0;
       for (let c = 0; c < GRID_COLS; c++) {
         if (blockCols.includes(c)) {
-          let baseHp = 1;
-          if (score <= 100) {
-              baseHp = Math.ceil(score * 0.8) + Math.floor(Math.random() * score * 0.4);
-          } else {
-              baseHp = Math.ceil(score * 1.5) + Math.floor(Math.random() * score * 0.8) + Math.floor(Math.pow((score - 100) / 50, 2) * 50);
-          }
+          let baseHp = Math.ceil(score * 1.5) + Math.floor(Math.random() * score * 0.8) + Math.floor(Math.pow(score / 100, 3) * 15);
           if (baseHp < 1) baseHp = 1;
           const hp = baseHp;
           let type = 'normal';
@@ -532,8 +521,8 @@
         
         document.getElementById('shopCoins').innerText = state.totalCoins || 0;
         
-        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 10 ? 'MAX' : state.baseDamage;
-        if (state.baseDamage >= 10) {
+        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 20 ? 'MAX' : state.baseDamage;
+        if (state.baseDamage >= 20) {
             document.getElementById('upgradeBtn').innerText = 'MAX LEVEL';
             document.getElementById('upgradeBtn').style.opacity = '0.5';
         } else {
@@ -590,7 +579,7 @@
 
     upgradeBtn.addEventListener('click', () => {
         const cost = 50 + (state.baseDamage - 1) * 30;
-        if (state.totalCoins >= cost && state.baseDamage < 10) {
+        if (state.totalCoins >= cost && state.baseDamage < 20) {
             state.totalCoins -= cost;
             state.baseDamage++;
             storage.setItem('dinoTotalCoins', state.totalCoins.toString());
@@ -1580,7 +1569,7 @@
                      b.type = 'normal';
                      spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
                  } else if (b.type === 'boss_iron') {
-                      b.hp = state.score <= 100 ? 1000 + state.score * 20 : Math.floor(1000 + state.score * 20 + Math.pow((state.score - 100) / 50, 2.5) * 2000);
+                      b.hp = Math.floor(1000 + state.score * 20 + Math.pow(state.score / 100, 3) * 300);
                       b.type = 'boss'; // becomes normal boss
                      spawnParticles(bx, by, '#94a3b8', 50); // Heavy metal fragments
                  } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy') {
