@@ -131,18 +131,8 @@
       <div class="game-over-overlay active" id="gameOverOverlay">
         <h2 class="game-over-title" id="overlayTitle">DINO BALLZ</h2>
         
-        <div class="character-select">
-          <p style="margin-bottom: 15px; color: #94a3b8; font-size: 0.9rem;">CHARACTER SELECT</p>
-          <div class="char-buttons" id="charButtons">
-            <button class="char-btn active" data-char="original">オリジナル</button>
-            <button class="char-btn" data-char="orange">オレンジ</button>
-            <button class="char-btn" data-char="reaper">死神</button>
-            <button class="char-btn" data-char="punch">デカパンチ</button>
-            <button class="char-btn" data-char="dino">ディノ</button>
-          </div>
         <div style="margin: 1.5rem 0;">
           <input type="text" id="usernameInput" maxlength="12" placeholder="Player Name" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 0.5rem 1rem; color: #fff; font-size: 1.2rem; text-align: center; width: 80%; max-width: 200px; outline: none; font-family: 'Nunito', sans-serif;">
-        </div>
         </div>
 
         <button class="retry-button" id="rankingBtn" style="background: linear-gradient(135deg, #a855f7, #9333ea); box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.4); margin-bottom: 1rem; font-size: 1.2rem; padding: 1rem;">RANKING</button>
@@ -156,7 +146,7 @@
         <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; width: 80%; max-width: 300px;">
             <button class="retry-button" id="resumeBtn" style="padding: 1rem; font-size: 1.2rem; border-radius: 12px;">RESUME</button>
             <button class="retry-button" id="openShopBtn" style="background: linear-gradient(135deg, #facc15, #eab308); color: #000; box-shadow: 0 10px 15px -3px rgba(250, 204, 21, 0.4); padding: 1rem; font-size: 1.2rem; border-radius: 12px;">SHOP / UPGRADES</button>
-            <button class="retry-button" id="quitBtn" style="background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.4); padding: 1rem; font-size: 1.2rem; border-radius: 12px;">CHAR SELECT</button>
+            <button class="retry-button" id="quitBtn" style="background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.4); padding: 1rem; font-size: 1.2rem; border-radius: 12px;">HOME</button>
         </div>
       </div>
 
@@ -216,6 +206,18 @@
         </div>
 
         <button class="retry-button" id="closeRankingBtn" style="padding: 1rem 3rem; font-size: 1.2rem; border-radius: 12px; width: auto;">BACK</button>
+      </div>
+
+      <!-- Ability Selection Overlay -->
+      <div class="game-over-overlay" id="abilityOverlay" style="justify-content: center; padding: 2rem;">
+        <h2 class="game-over-title" style="background: linear-gradient(to right, #60a5fa, #3b82f6); -webkit-background-clip: text; font-size: 2.5rem; margin-bottom: 0.5rem; line-height: 1.2;">
+          BOSS DEFEATED!
+        </h2>
+        <p style="color: #cbd5e1; font-size: 1.2rem; margin-bottom: 2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Choose a temporary ability</p>
+        
+        <div id="abilityChoices" style="display: flex; flex-direction: column; gap: 1rem; width: 90%; max-width: 400px; margin-bottom: 2rem;">
+            <!-- Ability buttons injected here -->
+        </div>
       </div>
     </div>
   </div>
@@ -372,7 +374,10 @@
     let state = {
       status: 'START_SCREEN',
       previousStatus: null,
-      selectedChar: storage.getItem('dinoSelectedChar') || 'original',
+      bossWarningTimer: 0,
+      bossWarningText: '',
+      abilities: {},
+      pendingAbilities: [],
       totalCoins: parseInt(storage.getItem('dinoTotalCoins')) || 0,
       baseDamage: parseInt(storage.getItem('dinoBaseDamage')) || 1,
       explosionLevel: parseInt(storage.getItem('explosionLevel')) || 0,
@@ -421,22 +426,10 @@
     const gameOverOverlay = document.getElementById('gameOverOverlay');
     const retryButton = document.getElementById('retryButton');
     const overlayTitle = document.getElementById('overlayTitle');
-    const charButtons = document.querySelectorAll('.char-btn');
     const menuBtn = document.getElementById('menuBtn');
     const pauseOverlay = document.getElementById('pauseOverlay');
     const resumeBtn = document.getElementById('resumeBtn');
     const quitBtn = document.getElementById('quitBtn');
-
-    const updateCharSelectionUI = () => {
-      charButtons.forEach(b => {
-         if (b.dataset.char === state.selectedChar) {
-             b.classList.add('active');
-         } else {
-             b.classList.remove('active');
-         }
-      });
-    };
-    updateCharSelectionUI();
 
     const usernameInput = document.getElementById('usernameInput');
     usernameInput.value = state.username;
@@ -624,14 +617,6 @@
         }
     });
 
-    charButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.selectedChar = btn.dataset.char;
-        storage.setItem('dinoSelectedChar', state.selectedChar);
-        updateCharSelectionUI();
-      });
-    });
-
     const updateUI = () => {
       scoreText.innerText = state.score;
       highScoreText.innerText = highScore;
@@ -722,8 +707,74 @@
       state.targetPoint = null;
       state.blocksCountAtStart = state.blocks.length;
       state.turnTimer = 0;
-      state.speedMult = 1.0;
+      state.speedMult = 1.0 + 0.15 * (state.abilities.speedStar || 0);
       state.bossDefeatedThisTurn = false;
+    };
+
+    const ABILITY_POOL = [
+        { id: 'childBallPower', name: 'Child Power', desc: '子ボールのダメージ+1', color: '#60a5fa' },
+        { id: 'criticalHit', name: 'Critical Hit', desc: '5%の確率でダメージ2倍', color: '#f87171' },
+        { id: 'speedStar', name: 'Speed Star', desc: 'ボール速度+15%', color: '#facc15' },
+        { id: 'explosionExpand', name: 'Explosion Expand', desc: '爆発範囲+1マス', color: '#fb923c' },
+        { id: 'goldRush', name: 'Gold Rush', desc: '獲得コイン量x1.5', color: '#fcd34d' },
+        { id: 'bounceMage', name: 'Bounce Mage', desc: '壁反射でダメージ+2', color: '#c084fc' },
+        { id: 'insurance', name: 'Insurance', desc: '親玉の下部バウンド+1回', color: '#34d399' },
+        { id: 'lastSpurt', name: 'Last Spurt', desc: 'ピンチ時に全ダメージ2倍', color: '#ef4444' }
+    ];
+
+    const generateAbilities = () => {
+        // Pick 3 random distinct abilities
+        const shuffled = [...ABILITY_POOL].sort(() => 0.5 - Math.random());
+        state.pendingAbilities = shuffled.slice(0, 3);
+        
+        const container = document.getElementById('abilityChoices');
+        container.innerHTML = '';
+        
+        state.pendingAbilities.forEach(ability => {
+            const btn = document.createElement('button');
+            btn.className = 'retry-button';
+            btn.style.background = `linear-gradient(135deg, ${ability.color}, #00000088)`;
+            btn.style.boxShadow = `0 4px 6px ${ability.color}66`;
+            btn.style.marginBottom = '0.5rem';
+            btn.style.padding = '1rem';
+            btn.style.display = 'flex';
+            btn.style.flexDirection = 'column';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '0.5rem';
+            
+            btn.innerHTML = `
+                <div style="font-size: 1.5rem; font-weight: 900; color: #fff;">${ability.name}</div>
+                <div style="font-size: 1rem; color: #f1f5f9;">${ability.desc}</div>
+                <div style="font-size: 0.9rem; color: #cbd5e1;">(現在: Lv.${state.abilities[ability.id] || 0})</div>
+            `;
+            
+            btn.addEventListener('click', () => {
+                state.abilities[ability.id] = (state.abilities[ability.id] || 0) + 1;
+                document.getElementById('abilityOverlay').classList.remove('active');
+                
+                // Proceed to warping
+                state.status = 'WARPING';
+                state.warpCounter = 0;
+                state.warpTimer = 0;
+                state.warpBlocks = [];
+                state.blocks = [];
+                state.items = [];
+                state.effects.push({ type: 'warp_lightning', isBoss: true, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+                state.effects.push({ type: 'eval_text_warp', text: 'BOSS DEFEATED!', color: '#f43f5e', timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+                
+                storage.setItem('dinoSaveState', JSON.stringify({
+                    score: state.score,
+                    ballsTotal: state.ballsTotal,
+                    blocks: state.blocks,
+                    items: state.items,
+                    abilities: state.abilities,
+                    startX: state.startX
+                }));
+            });
+            container.appendChild(btn);
+        });
+        
+        document.getElementById('abilityOverlay').classList.add('active');
     };
 
     let isDragging = false; 
@@ -795,12 +846,11 @@
             storage.setItem('dinoUsername', username);
             const initRow = generateRow(1, 1);
             let startingBalls = 5;
-            if (state.selectedChar === 'orange') startingBalls = 15;
-            else if (state.selectedChar === 'blue') startingBalls = 10;
             
             state = {
                 status: 'AIMING',
-                selectedChar: state.selectedChar,
+                abilities: {},
+                pendingAbilities: [],
                 totalCoins: state.totalCoins || 0,
                 baseDamage: state.baseDamage || 1,
                 explosionLevel: state.explosionLevel || 0,
@@ -860,6 +910,8 @@
             state.ballsTotal = saved.ballsTotal || 1;
             state.blocks = saved.blocks || [];
             state.items = saved.items || [];
+            state.abilities = saved.abilities || {};
+            state.pendingAbilities = [];
             state.startX = saved.startX || LOGICAL_WIDTH / 2;
             state.addedBallsNextTurn = 0;
             state.ballsLaunched = 0;
@@ -1016,7 +1068,7 @@
               state.ballsTotal += state.addedBallsNextTurn;
               state.addedBallsNextTurn = 0;
               
-              const bonusCoins = 15;
+              const bonusCoins = Math.floor(15 * Math.pow(1.5, state.abilities.goldRush || 0));
               state.totalCoins = (state.totalCoins || 0) + bonusCoins;
               storage.setItem('dinoTotalCoins', state.totalCoins.toString());
               
@@ -1102,6 +1154,9 @@
              if (b.y - BALL_RADIUS < 0) { b.y = BALL_RADIUS; b.vy *= -1; b.hitCount++; wallBounced = true; }
 
              if (wallBounced) {
+                 if (state.abilities.bounceMage) {
+                     b.bounceBonusDamage = (b.bounceBonusDamage || 0) + (2 * state.abilities.bounceMage);
+                 }
                  bounceCountThisFrame++;
                  if (bounceCountThisFrame >= 5) {
                      b.x += (Math.random() - 0.5) * 1.0;
@@ -1112,7 +1167,7 @@
 
              if (b.vy > 0 && b.y + BALL_RADIUS > DOTTED_LINE_Y) {
                let shouldBounce = false;
-               if (b.isLeader && state.selectedChar === 'dino' && b.bounceCount < 2) {
+               if (b.isLeader && b.bounceCount < 1 + (state.abilities.insurance || 0)) {
                    shouldBounce = true;
                    b.bounceCount++;
                }
@@ -1211,7 +1266,7 @@
                         state.addedBallsNextTurn++;
                     } else if (item.type === 'coin') {
                         item.collected = true;
-                        state.totalCoins++;
+                        state.totalCoins += Math.floor(1 * Math.pow(1.5, state.abilities.goldRush || 0));
                         storage.setItem('dinoTotalCoins', state.totalCoins.toString());
                         // Particle effect
                         for(let k=0; k<8; k++){
@@ -1296,6 +1351,8 @@
                }
                  
                 isCollidingWithAnyBlock = true;
+                let bounceDamage = b.bounceBonusDamage || 0;
+                b.bounceBonusDamage = 0;
                  
                 let isFirstHit = b.isLeader && !b.hasHitBlock;
                 if (isFirstHit) {
@@ -1311,10 +1368,20 @@
                     skipDamage = true;
                 }
                   
-                let damage = b.isLeader ? state.baseDamage : 1;
+                let damage = b.isLeader ? state.baseDamage : (1 + (state.abilities.childBallPower || 0));
                 if (b.isLeader) {
-                    if (state.selectedChar === 'punch') damage += 1; 
-                    if (state.selectedChar === 'dino') damage += Math.max(1, state.baseDamage); 
+                    damage += Math.max(1, state.baseDamage); 
+                }
+                
+                damage += bounceDamage;
+
+                if (state.abilities.criticalHit && Math.random() < 0.05 * state.abilities.criticalHit) {
+                    damage *= 2;
+                }
+
+                let hasBlockNearBottom = state.blocks.some(bl => bl.hp > 0 && !bl.isTransparent && (bl.row * BLOCK_SIZE + BLOCK_SIZE) >= DOTTED_LINE_Y - BLOCK_SIZE);
+                if (state.abilities.lastSpurt && hasBlockNearBottom) {
+                    damage *= Math.pow(2, state.abilities.lastSpurt);
                 }
 
                 let applyExplosion = false;
@@ -1329,9 +1396,6 @@
                damage *= multiplier;
 
                let instantKill = false;
-               if (state.selectedChar === 'reaper' && Math.random() < 0.05) { 
-                   instantKill = true;
-               }
 
                let hitEdge = null;
                if (!hitHypotenuse) {
@@ -1360,16 +1424,17 @@
                }
                
                if (applyExplosion) {
-                   const expDmg = state.explosionLevel * 10;
-                   const targetCol = block.col;
-                   const targetRow = block.row;
-                   
-                   state.blocks.forEach(nb => {
-                       if (nb.hp > 0 && !nb.isTransparent && Math.abs(nb.col - targetCol) <= 1 && Math.abs(nb.row - targetRow) <= 1) {
-                           nb.hp -= expDmg;
-                           nb.hitTimer = 0.1;
+                    const expDmg = state.explosionLevel * 10;
+                    const targetCol = block.col;
+                    const targetRow = block.row;
+                    const expRadius = 1 + (state.abilities.explosionExpand || 0);
+                    
+                    state.blocks.forEach(nb => {
+                        if (nb.hp > 0 && !nb.isTransparent && Math.abs(nb.col - targetCol) <= expRadius && Math.abs(nb.row - targetRow) <= expRadius) {
+                            nb.hp -= expDmg;
+                            nb.hitTimer = 0.1;
                            
-                           state.effects.push({
+                            state.effects.push({
                                type: 'damage_popup',
                                text: expDmg.toString(),
                                x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
@@ -1428,9 +1493,6 @@
                }
 
                let penetrate = false;
-               if (state.selectedChar === 'punch' && prevHp <= damage) {
-                   penetrate = true; 
-               }
                if (b.penetrationMode) {
                    penetrate = true;
                }
@@ -1546,14 +1608,19 @@
           let skipStages = 0;
 
           if (state.bossDefeatedThisTurn) {
-              state.status = 'WARPING';
-              state.warpCounter = 0;
-              state.warpTimer = 0;
-              state.warpBlocks = [];
-              state.blocks = [];
-              state.items = [];
-              state.effects.push({ type: 'warp_lightning', isBoss: true, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
-              state.effects.push({ type: 'eval_text_warp', text: 'BOSS DEFEATED!', color: '#f43f5e', timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+              if (state.score > 0 && state.score % 100 === 0) {
+                  state.status = 'ABILITY_SELECT';
+                  generateAbilities();
+              } else {
+                  state.status = 'WARPING';
+                  state.warpCounter = 0;
+                  state.warpTimer = 0;
+                  state.warpBlocks = [];
+                  state.blocks = [];
+                  state.items = [];
+                  state.effects.push({ type: 'warp_lightning', isBoss: true, timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+                  state.effects.push({ type: 'eval_text_warp', text: 'BOSS DEFEATED!', color: '#f43f5e', timer: 1.5, y: LOGICAL_HEIGHT / 2 });
+              }
           } else if (blocksRemaining === 0 && state.blocksCountAtStart > 0) {
               if (state.score % 50 === 49) {
                   // ボス直前（49, 99...）で全消しした場合、ワープしてしまうと49ループに陥りボスが出ないためワープをキャンセル
@@ -1662,6 +1729,7 @@
                     ballsTotal: state.ballsTotal,
                     blocks: state.blocks,
                     items: state.items,
+                    abilities: state.abilities,
                     startX: state.startX
                 }));
               }
@@ -1674,62 +1742,48 @@
     let lastTime = performance.now();
     updateUI();
 
-    const drawDino = (ctx, x, y, isOpen, charId, scale) => {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(scale, scale);
-      
-      let bodyColor, hornColor;
-      switch(charId) {
-          case 'orange': bodyColor = '#f97316'; hornColor = '#fff'; break;
-          case 'reaper': bodyColor = '#7e22ce'; hornColor = '#d8b4fe'; break;
-          case 'punch': bodyColor = '#ec4899'; hornColor = '#fff'; break;
-          case 'dino': bodyColor = '#2dd4bf'; hornColor = '#fff'; break; // Teal
-          default: bodyColor = '#38bdf8'; hornColor = '#fff'; break; // Light blue
-      }
+    const drawDino = (ctx, x, y, isOpen, scale = 1.0) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        
+        const bodyColor = '#2dd4bf'; // Teal
+        const hornColor = '#fff';
 
-      // Spikes on back (drawn behind body)
-      ctx.fillStyle = hornColor;
-      ctx.beginPath();
-      ctx.moveTo(-22, -10); ctx.lineTo(-35, -20); ctx.lineTo(-15, -20);
-      ctx.moveTo(-28, 5); ctx.lineTo(-40, -5); ctx.lineTo(-25, -2);
-      ctx.moveTo(22, -10); ctx.lineTo(35, -20); ctx.lineTo(15, -20);
-      ctx.moveTo(28, 5); ctx.lineTo(40, -5); ctx.lineTo(25, -2);
-      ctx.fill();
+        // Spikes on back (drawn behind body)
+        ctx.fillStyle = hornColor;
+        ctx.beginPath();
+        ctx.moveTo(-22, -10); ctx.lineTo(-35, -20); ctx.lineTo(-15, -20);
+        ctx.moveTo(-28, 5); ctx.lineTo(-40, -5); ctx.lineTo(-25, -2);
+        ctx.moveTo(22, -10); ctx.lineTo(35, -20); ctx.lineTo(15, -20);
+        ctx.moveTo(28, 5); ctx.lineTo(40, -5); ctx.lineTo(25, -2);
+        ctx.fill();
 
-      // Body (Gumdrop shape)
-      ctx.fillStyle = bodyColor;
-      ctx.beginPath();
-      ctx.arc(0, -5, 32, Math.PI, 0); // Top arc
-      ctx.rect(-32, -5, 64, 35); // Lower rectangle
-      ctx.fill();
+        // Body (Gumdrop shape)
+        ctx.fillStyle = bodyColor;
+        ctx.beginPath();
+        ctx.arc(0, -5, 32, Math.PI, 0); // Top arc
+        ctx.rect(-32, -5, 64, 35); // Lower rectangle
+        ctx.fill();
 
-      // Top Horns
-      ctx.fillStyle = hornColor;
-      ctx.beginPath();
-      ctx.moveTo(-15, -32); ctx.lineTo(-20, -45); ctx.lineTo(-5, -35); // Left horn
-      ctx.moveTo(15, -32); ctx.lineTo(20, -45); ctx.lineTo(5, -35); // Right horn
-      ctx.fill();
+        // Top Horns
+        ctx.fillStyle = hornColor;
+        ctx.beginPath();
+        ctx.moveTo(-15, -32); ctx.lineTo(-20, -45); ctx.lineTo(-5, -35); // Left horn
+        ctx.moveTo(15, -32); ctx.lineTo(20, -45); ctx.lineTo(5, -35); // Right horn
+        ctx.fill();
 
-      // Eyes (Big Ovals)
-      ctx.fillStyle = '#fff';
-      if (charId === 'reaper') {
-          ctx.beginPath(); ctx.ellipse(-12, -8, 8, 12, 0, 0, Math.PI*2); ctx.fill();
-          ctx.beginPath(); ctx.ellipse(12, -8, 8, 12, 0, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle = '#0f172a'; // Dead pupil
-          ctx.beginPath(); ctx.ellipse(-12, -6, 4, 6, 0, 0, Math.PI*2); ctx.fill();
-          ctx.beginPath(); ctx.ellipse(12, -6, 4, 6, 0, 0, Math.PI*2); ctx.fill();
-      } else {
-          ctx.beginPath(); ctx.ellipse(-12, -10, 9, 14, 0, 0, Math.PI*2); ctx.fill();
-          ctx.beginPath(); ctx.ellipse(12, -10, 9, 14, 0, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle = '#0f172a'; // Pupil looking forward
-          ctx.beginPath(); ctx.ellipse(-12, -12, 4, 6, 0, 0, Math.PI*2); ctx.fill();
-          ctx.beginPath(); ctx.ellipse(12, -12, 4, 6, 0, 0, Math.PI*2); ctx.fill();
-      }
+        // Eyes (Big Ovals)
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(-12, -10, 9, 14, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(12, -10, 9, 14, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#0f172a'; // Pupil looking forward
+        ctx.beginPath(); ctx.ellipse(-12, -12, 4, 6, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(12, -12, 4, 6, 0, 0, Math.PI*2); ctx.fill();
 
-      // Mouth
-      ctx.fillStyle = '#1e1b4b'; // dark mouth interior
-      ctx.beginPath();
+        // Mouth
+        ctx.fillStyle = '#1e1b4b'; // dark mouth interior
+        ctx.beginPath();
       if (isOpen) {
         // Aiming - big open mouth
         ctx.arc(0, 12, 16, 0, Math.PI, false);
@@ -2393,7 +2447,7 @@
       if (state.status !== 'START_SCREEN') {
          const isAiming = state.status === 'AIMING';
          const dinoScale = isAiming ? 1.0 + Math.sin(time / 200) * 0.05 : 1.0; // Breathing animation
-         drawDino(ctx, state.startX, LOGICAL_HEIGHT - 30, isAiming, state.selectedChar, dinoScale);
+         drawDino(ctx, state.startX, LOGICAL_HEIGHT - 30, isAiming, dinoScale);
 
          if (isAiming) {
              ctx.fillStyle = '#fff';
@@ -2446,10 +2500,7 @@
                   ctx.shadowColor = '#facc15';
                   ctx.shadowBlur = 10;
               } else {
-                  if (state.selectedChar === 'orange') ctx.fillStyle = '#ffedd5';
-                  else if (state.selectedChar === 'reaper') ctx.fillStyle = '#f3e8ff';
-                  else if (state.selectedChar === 'punch') ctx.fillStyle = '#fce7f3';
-                  else ctx.fillStyle = '#fdf4ff';
+                  ctx.fillStyle = '#fdf4ff';
                   ctx.shadowColor = '#c084fc';
                   ctx.shadowBlur = 10;
               }
