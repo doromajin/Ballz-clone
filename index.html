@@ -284,10 +284,18 @@
               shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
           }
 
-          let bossHp = 2000 + score * 40;
-          if (bossType === 'boss_muddy') {
-              bossHp = 10000 + score * 100;
-          }
+           let bossHp = 0;
+           if (score <= 100) {
+               bossHp = 1000 + score * 20; 
+           } else {
+               bossHp = 1000 + score * 20 + Math.pow((score - 100) / 50, 2.5) * 2000;
+           }
+           
+           if (bossType === 'boss_muddy') {
+               if (score <= 100) bossHp = 5000 + score * 50;
+               else bossHp = 5000 + score * 50 + Math.pow((score - 100) / 50, 2.5) * 8000;
+           }
+           bossHp = Math.floor(bossHp);
 
           blocks.push({
               id: Math.random().toString(36).substring(7),
@@ -317,7 +325,12 @@
       let addBallCount = 0;
       for (let c = 0; c < GRID_COLS; c++) {
         if (blockCols.includes(c)) {
-          let baseHp = score <= 20 ? Math.ceil(score * 1.5) + Math.floor(Math.random() * score * 1.0) : Math.floor(score * 2.5) + Math.floor(Math.random() * (score * 1.0));
+          let baseHp = 1;
+          if (score <= 100) {
+              baseHp = Math.ceil(score * 0.8) + Math.floor(Math.random() * score * 0.4);
+          } else {
+              baseHp = Math.ceil(score * 1.5) + Math.floor(Math.random() * score * 0.8) + Math.floor(Math.pow((score - 100) / 50, 2) * 50);
+          }
           if (baseHp < 1) baseHp = 1;
           const hp = baseHp;
           let type = 'normal';
@@ -353,14 +366,14 @@
           }
 
           blocks.push({ id: Math.random().toString(36).substring(7), col: c, row, hp: actualHp, maxHp: actualHp, type, shape, shield, isTransparent: false, hitTimer: 0 });
-        } else if (Math.random() < 0.35) { 
+        } else if (Math.random() < 0.25) { 
           let type = 'add_ball';
           const itemRand = Math.random();
           if (score > 5) {
              if (itemRand < 0.1) type = 'thunder_v';
              else if (itemRand < 0.2) type = 'thunder_h';
              else if (itemRand < 0.3) type = 'split';
-             else if (itemRand < 0.75) type = 'coin';
+             else if (itemRand < (score <= 100 ? 0.70 : 0.60)) type = 'coin';
           }
           
           if (type === 'add_ball') {
@@ -396,8 +409,6 @@
       items: [],
       balls: [],
       score: 0,
-      bossWarningTimer: 0,
-      bossWarningText: '',
       ballsTotal: 5,
       addedBallsNextTurn: 0,
       startX: LOGICAL_WIDTH / 2,
@@ -1569,8 +1580,8 @@
                      b.type = 'normal';
                      spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
                  } else if (b.type === 'boss_iron') {
-                     b.hp = 2000 + state.score * 40; // restore HP as normal boss
-                     b.type = 'boss'; // becomes normal boss
+                      b.hp = state.score <= 100 ? 1000 + state.score * 20 : Math.floor(1000 + state.score * 20 + Math.pow((state.score - 100) / 50, 2.5) * 2000);
+                      b.type = 'boss'; // becomes normal boss
                      spawnParticles(bx, by, '#94a3b8', 50); // Heavy metal fragments
                  } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy') {
                      bossDefeated = true;
