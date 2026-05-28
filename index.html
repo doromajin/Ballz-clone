@@ -284,10 +284,10 @@
               shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
           }
 
-           let bossHp = 1000 + score * 20 + Math.pow(score / 100, 3) * 300;
+           let bossHp = 1000 + score * 20 + Math.pow(score / 100, 2) * 500;
            
            if (bossType === 'boss_muddy') {
-               bossHp *= 1.6; // Muddy boss gets a huge multiplier (75k+ HP at stage 500)
+               bossHp *= 1.2;
            }
            bossHp = Math.floor(bossHp);
 
@@ -319,7 +319,7 @@
       let addBallCount = 0;
       for (let c = 0; c < GRID_COLS; c++) {
         if (blockCols.includes(c)) {
-          let baseHp = Math.ceil(score * 1.5) + Math.floor(Math.random() * score * 0.8) + Math.floor(Math.pow(score / 100, 3) * 15);
+          let baseHp = Math.ceil(score * 1.5) + Math.floor(Math.random() * score * 0.8) + Math.floor(Math.pow(score / 100, 2) * 15);
           if (baseHp < 1) baseHp = 1;
           const hp = baseHp;
           let type = 'normal';
@@ -336,7 +336,7 @@
           if (score >= 200 && Math.random() < 0.05) {
               type = 'iron';
           }
-          if (score >= 501 && Math.random() < 0.05) {
+          if (score >= 501 && Math.random() < 0.05 && typeof state !== 'undefined' && !state.blocks.some(b => b.type.startsWith('boss'))) {
               type = 'healer';
           }
 
@@ -520,7 +520,7 @@
         const costBase = 50 + (state.baseDamage - 1) * 30;
         const costExpl = 100 + (state.explosionLevel) * 50;
         const costPen = 300;
-        const costMainBalls = 200;
+        const costMainBalls = 200 + (state.mainBallsLevel - 1) * 100;
         
         document.getElementById('shopCoins').innerText = state.totalCoins || 0;
         
@@ -617,7 +617,7 @@
     });
     
     upgradeMainBallsBtn.addEventListener('click', () => {
-        const cost = 200;
+        const cost = 200 + (state.mainBallsLevel - 1) * 100;
         if (state.totalCoins >= cost && state.mainBallsLevel < 10) {
             state.totalCoins -= cost;
             state.mainBallsLevel++;
@@ -1572,7 +1572,7 @@
                      b.type = 'normal';
                      spawnParticles(bx, by, '#94a3b8', 20); // Metal fragments
                  } else if (b.type === 'boss_iron') {
-                      b.hp = Math.floor(1000 + state.score * 20 + Math.pow(state.score / 100, 3) * 300);
+                      b.hp = Math.floor(1000 + state.score * 20 + Math.pow(state.score / 100, 2) * 500);
                       b.type = 'boss'; // becomes normal boss
                      spawnParticles(bx, by, '#94a3b8', 50); // Heavy metal fragments
                  } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy') {
