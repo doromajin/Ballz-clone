@@ -187,7 +187,7 @@
 
         <!-- Main Balls -->
         <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1.5rem; border: 2px solid rgba(52,211,153,0.3);">
-            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #6ee7b7; font-weight: bold;">MAIN BALLS (Max 5)</div>
+            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #6ee7b7; font-weight: bold;">MAIN BALLS (Max 10)</div>
             <div style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #34d399;">Lv. <span id="shopMainBalls">1</span></div>
             <button class="retry-button" id="upgradeMainBallsBtn" style="padding: 0.8rem; width: 100%; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #34d399, #059669); color: #fff;">
                 UPGRADE (<span id="costMainBalls">200</span>)
@@ -551,8 +551,8 @@
             document.getElementById('upgradePenetrationBtn').style.opacity = state.totalCoins >= costPen ? '1' : '0.5';
         }
         
-        document.getElementById('shopMainBalls').innerText = state.mainBallsLevel >= 5 ? 'MAX' : state.mainBallsLevel;
-        if (state.mainBallsLevel >= 5) {
+        document.getElementById('shopMainBalls').innerText = state.mainBallsLevel >= 10 ? '10 (MAX)' : state.mainBallsLevel;
+        if (state.mainBallsLevel >= 10) {
             document.getElementById('upgradeMainBallsBtn').innerText = 'MAX LEVEL';
             document.getElementById('upgradeMainBallsBtn').style.opacity = '0.5';
         } else {
@@ -618,7 +618,7 @@
     
     upgradeMainBallsBtn.addEventListener('click', () => {
         const cost = 200;
-        if (state.totalCoins >= cost && state.mainBallsLevel < 5) {
+        if (state.totalCoins >= cost && state.mainBallsLevel < 10) {
             state.totalCoins -= cost;
             state.mainBallsLevel++;
             storage.setItem('dinoTotalCoins', state.totalCoins.toString());
