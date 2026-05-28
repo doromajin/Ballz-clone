@@ -336,6 +336,9 @@
           if (score >= 200 && Math.random() < 0.05) {
               type = 'iron';
           }
+          if (score >= 501 && Math.random() < 0.05) {
+              type = 'healer';
+          }
 
           if (type === 'iron' || type === 'shield') {
               shape = 'square'; // Force square for iron and shield
@@ -1613,6 +1616,29 @@
         }
         
         if (state.status === 'RESOLVING' && !isAnyBallActive) {
+            state.blocks.filter(b => b.type === 'healer' && b.hp > 0).forEach(healer => {
+                state.blocks.forEach(target => {
+                    if (target.hp > 0 && Math.abs(target.col - healer.col) <= 1 && Math.abs(target.row - healer.row) <= 1) {
+                        const healAmount = Math.floor(target.maxHp * 0.1);
+                        if (healAmount > 0 && target.hp < target.maxHp) {
+                            const actualHeal = Math.min(healAmount, target.maxHp - target.hp);
+                            target.hp += actualHeal;
+                            
+                            state.effects.push({
+                                type: 'damage_popup',
+                                text: '+' + actualHeal,
+                                x: target.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                                y: target.row * BLOCK_SIZE + BLOCK_SIZE / 2,
+                                timer: 0.8,
+                                scale: 1.2,
+                                isBlue: false,
+                                color: '#4ade80' // Green color for heal
+                            });
+                        }
+                    }
+                });
+            });
+
           const blocksRemaining = state.blocks.length;
           const blocksDestroyed = state.blocksCountAtStart - blocksRemaining;
 
@@ -2056,9 +2082,11 @@
            mainColor = '#65a30d'; highlightColor = '#84cc16';
         } else if (block.type === 'ghost') {
            mainColor = '#a855f7'; highlightColor = '#c084fc';
-        } else if (block.type === 'shield') {
-           mainColor = '#eab308'; highlightColor = '#fde047';
-        } else {
+         } else if (block.type === 'shield') {
+            mainColor = '#eab308'; highlightColor = '#fde047';
+         } else if (block.type === 'healer') {
+            mainColor = '#10b981'; highlightColor = '#34d399';
+         } else {
            const ratio = Math.max(0, Math.min(1, (block.hp - 1) / 49)); 
            const hue = 240 - ratio * 240; 
            mainColor = `hsl(${hue}, 70%, 45%)`;
@@ -2181,6 +2209,15 @@
             ctx.fillStyle = grad;
             drawShape();
             ctx.fill();
+            
+            if (block.type === 'healer') {
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${Math.min(sizeW, sizeH) * 0.6}px "Nunito"`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('+', x + margin + sizeW/2, y + margin + sizeH/2 + 2);
+            }
+
             ctx.strokeStyle = 'rgba(0,0,0,0.3)';
             ctx.lineWidth = 1.5;
             ctx.stroke();
