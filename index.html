@@ -1653,6 +1653,8 @@
 
           if (state.status === 'WARPING') {
              state.items = []; // Items fly away due to warp
+          } else if (state.status === 'ABILITY_SELECT') {
+             // 完全にロック（ポーズ）状態を維持。アビリティ確定までステージ進行を停止する。
           } else {
              state.score += 1;
              if (state.score > 0 && state.score % 50 === 49) {
