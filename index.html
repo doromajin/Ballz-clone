@@ -294,6 +294,7 @@
               shield: shield,
               shape: 'square',
               width: 3,
+              is100Boss: (score % 100 === 0),
               isTransparent: false,
               hitTimer: 0
           });
@@ -405,7 +406,9 @@
       turnTimer: 0,
       speedMult: 1.0,
       username: storage.getItem('dinoUsername') || 'Player',
-      lastPlayTimestamp: null
+      lastPlayTimestamp: null,
+      bossDefeatedThisTurn: false,
+      defeatedBossWas100: false
     };
 
     let leaderboard = JSON.parse(storage.getItem('dinoLeaderboard'));
@@ -709,6 +712,7 @@
       state.turnTimer = 0;
       state.speedMult = 1.0 + 0.15 * (state.abilities.speedStar || 0);
       state.bossDefeatedThisTurn = false;
+      state.defeatedBossWas100 = false;
     };
 
     const ABILITY_POOL = [
@@ -878,6 +882,7 @@
                 turnTimer: 0,
                 speedMult: 1.0,
                 bossDefeatedThisTurn: false,
+                defeatedBossWas100: false,
                 username: username,
                 lastPlayTimestamp: state.lastPlayTimestamp
             };
@@ -915,11 +920,13 @@
             state.startX = saved.startX || LOGICAL_WIDTH / 2;
             state.addedBallsNextTurn = 0;
             state.ballsLaunched = 0;
-                state.balls = [];
-                state.particles = [];
-                state.warpBlocks = [];
-                state.effects = [];
-                updateUI();
+            state.balls = [];
+            state.particles = [];
+            state.warpBlocks = [];
+            state.effects = [];
+            state.bossDefeatedThisTurn = false;
+            state.defeatedBossWas100 = false;
+            updateUI();
         }
     });
 
@@ -1562,6 +1569,7 @@
                      spawnParticles(bx, by, '#94a3b8', 50); // Heavy metal fragments
                  } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy') {
                      bossDefeated = true;
+                     if (b.is100Boss) state.defeatedBossWas100 = true;
                      spawnParticles(bx, by, '#f43f5e', 50);
                      state.blocks.splice(i, 1);
                  } else {
@@ -1605,10 +1613,9 @@
 
           let evalText = '';
           let evalColor = '';
-          let skipStages = 0;
 
           if (state.bossDefeatedThisTurn) {
-              if (state.score > 0 && state.score % 100 === 0) {
+              if (state.defeatedBossWas100) {
                   state.status = 'ABILITY_SELECT';
                   generateAbilities();
               } else {
