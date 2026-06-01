@@ -284,7 +284,7 @@
               shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
           }
 
-           let bossHp = 1000 + score * 20 + Math.pow(score / 100, 2) * 500;
+           let bossHp = 500 + score * 10 + Math.pow(score / 50, 2.5) * 50;
            
            if (bossType === 'boss_muddy') {
                bossHp *= 1.2;
@@ -319,7 +319,7 @@
       let addBallCount = 0;
       for (let c = 0; c < GRID_COLS; c++) {
         if (blockCols.includes(c)) {
-          let baseHp = Math.ceil(score * 1.5) + Math.floor(Math.random() * score * 0.8) + Math.floor(Math.pow(score / 100, 2) * 15);
+          let baseHp = Math.ceil(score * 1.0) + Math.floor(Math.random() * score * 0.5) + Math.floor(Math.pow(score / 50, 2.5) * 3);
           if (baseHp < 1) baseHp = 1;
           const hp = baseHp;
           let type = 'normal';
@@ -330,7 +330,7 @@
           if (score > 10) {
               if (typeRand < 0.05) type = 'shield';
               else if (typeRand < 0.10) type = 'ghost';
-              else if (typeRand < 0.15) type = 'muddy';
+              else if (typeRand < 0.15 && score > 100) type = 'muddy';
           }
 
           if (score >= 200 && Math.random() < 0.05) {
@@ -526,8 +526,8 @@
         
         document.getElementById('shopCoins').innerText = state.totalCoins || 0;
         
-        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 20 ? '20 (MAX)' : state.baseDamage;
-        if (state.baseDamage >= 20) {
+        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 30 ? '30 (MAX)' : state.baseDamage;
+        if (state.baseDamage >= 30) {
             document.getElementById('upgradeBtn').innerText = 'MAX LEVEL';
             document.getElementById('upgradeBtn').style.opacity = '0.5';
         } else {
@@ -535,8 +535,8 @@
             document.getElementById('upgradeBtn').style.opacity = state.totalCoins >= costBase ? '1' : '0.5';
         }
         
-        document.getElementById('shopExplosion').innerText = state.explosionLevel >= 20 ? '20 (MAX)' : state.explosionLevel;
-        if (state.explosionLevel >= 20) {
+        document.getElementById('shopExplosion').innerText = state.explosionLevel >= 30 ? '30 (MAX)' : state.explosionLevel;
+        if (state.explosionLevel >= 30) {
             document.getElementById('upgradeExplosionBtn').innerText = 'MAX LEVEL';
             document.getElementById('upgradeExplosionBtn').style.opacity = '0.5';
         } else {
@@ -584,7 +584,7 @@
 
     upgradeBtn.addEventListener('click', () => {
         const cost = 50 + (state.baseDamage - 1) * 30;
-        if (state.totalCoins >= cost && state.baseDamage < 20) {
+        if (state.totalCoins >= cost && state.baseDamage < 30) {
             state.totalCoins -= cost;
             state.baseDamage++;
             storage.setItem('dinoTotalCoins', state.totalCoins.toString());
@@ -596,7 +596,7 @@
     
     upgradeExplosionBtn.addEventListener('click', () => {
         const cost = 100 + (state.explosionLevel) * 50;
-        if (state.totalCoins >= cost && state.explosionLevel < 20) {
+        if (state.totalCoins >= cost && state.explosionLevel < 30) {
             state.totalCoins -= cost;
             state.explosionLevel++;
             storage.setItem('dinoTotalCoins', state.totalCoins.toString());
@@ -760,10 +760,52 @@
             btn.style.alignItems = 'center';
             btn.style.gap = '0.5rem';
             
+            const currentLevel = state.abilities[ability.id] || 0;
+            let effectText = '';
+            if (currentLevel > 0) {
+                switch(ability.id) {
+                    case 'childBallPower':
+                        effectText = `ダメージ +${currentLevel} ➔ +${currentLevel + 1}`;
+                        break;
+                    case 'criticalHit':
+                        if (currentLevel >= 20) {
+                            effectText = `倍率 ${(2.0 + (currentLevel - 20) * 0.5).toFixed(1)}倍 ➔ ${(2.0 + (currentLevel + 1 - 20) * 0.5).toFixed(1)}倍`;
+                        } else {
+                            effectText = `確率 ${currentLevel * 5}% ➔ ${(currentLevel + 1) * 5}%`;
+                        }
+                        break;
+                    case 'speedStar':
+                        effectText = `速度 +${currentLevel * 15}% ➔ +${(currentLevel + 1) * 15}%`;
+                        break;
+                    case 'explosionExpand':
+                        effectText = `爆破ダメ +${currentLevel * 10}% ➔ +${(currentLevel + 1) * 10}%`;
+                        break;
+                    case 'goldRush':
+                        effectText = `コイン x${Math.pow(1.5, currentLevel).toFixed(1)} ➔ x${Math.pow(1.5, currentLevel + 1).toFixed(1)}`;
+                        break;
+                    case 'bounceMage':
+                        effectText = `反射ダメ +${currentLevel * 2} ➔ +${(currentLevel + 1) * 2}`;
+                        break;
+                    case 'insurance':
+                        effectText = `バウンド +${currentLevel}回 ➔ +${currentLevel + 1}回`;
+                        break;
+                    case 'lastSpurt':
+                        effectText = `ピンチ時 x${Math.pow(2, currentLevel)} ➔ x${Math.pow(2, currentLevel + 1)}`;
+                        break;
+                    case 'hyperDrill':
+                        effectText = `貫通ダメ +${currentLevel > 1 ? (currentLevel - 1) * 5 : 0} ➔ +${currentLevel * 5}`;
+                        break;
+                    case 'nitroBooster':
+                        effectText = `爆破倍率 x${1.0 + currentLevel * 0.5} ➔ x${1.0 + (currentLevel + 1) * 0.5}`;
+                        break;
+                }
+            }
+            
             btn.innerHTML = `
                 <div style="font-size: 1.5rem; font-weight: 900; color: #fff;">${ability.name}</div>
                 <div style="font-size: 1rem; color: #f1f5f9;">${ability.desc}</div>
-                <div style="font-size: 0.9rem; color: #cbd5e1;">(現在: Lv.${state.abilities[ability.id] || 0})</div>
+                <div style="font-size: 0.9rem; color: #cbd5e1;">(現在: Lv.${currentLevel})</div>
+                ${effectText ? `<div style="font-size: 1.1rem; font-weight: bold; color: #fbbf24; margin-top: 4px; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">${effectText}</div>` : ''}
             `;
             
             btn.addEventListener('click', () => {
@@ -1333,26 +1375,34 @@
                    if (block.shape === 'triangle_tl') {
                        if (rx + ry > w && rx + ry - w < rDiag) {
                            hitHypotenuse = true; isColliding = true;
-                           const distOut = rDiag - (rx + ry - w);
-                           b.x += distOut / 2; b.y += distOut / 2;
+                           if (!b.penetrationMode) {
+                               const distOut = rDiag - (rx + ry - w);
+                               b.x += distOut / 2; b.y += distOut / 2;
+                           }
                        } else if (rx + ry <= w) isColliding = true;
                    } else if (block.shape === 'triangle_tr') {
                        if (ry > rx && ry - rx < rDiag) {
                            hitHypotenuse = true; isColliding = true;
-                           const distOut = rDiag - (ry - rx);
-                           b.x -= distOut / 2; b.y += distOut / 2;
+                           if (!b.penetrationMode) {
+                               const distOut = rDiag - (ry - rx);
+                               b.x -= distOut / 2; b.y += distOut / 2;
+                           }
                        } else if (ry <= rx) isColliding = true;
                    } else if (block.shape === 'triangle_bl') {
                        if (rx > ry && rx - ry < rDiag) {
                            hitHypotenuse = true; isColliding = true;
-                           const distOut = rDiag - (rx - ry);
-                           b.x += distOut / 2; b.y -= distOut / 2;
+                           if (!b.penetrationMode) {
+                               const distOut = rDiag - (rx - ry);
+                               b.x += distOut / 2; b.y -= distOut / 2;
+                           }
                        } else if (rx <= ry) isColliding = true;
                    } else if (block.shape === 'triangle_br') {
                        if (rx + ry < w && w - (rx + ry) < rDiag) {
                            hitHypotenuse = true; isColliding = true;
-                           const distOut = rDiag - (w - (rx + ry));
-                           b.x -= distOut / 2; b.y -= distOut / 2;
+                           if (!b.penetrationMode) {
+                               const distOut = rDiag - (w - (rx + ry));
+                               b.x -= distOut / 2; b.y -= distOut / 2;
+                           }
                        } else if (rx + ry >= w) isColliding = true;
                    }
                    
@@ -1389,45 +1439,57 @@
                     skipDamage = true;
                 }
                   
-                let damage = b.isLeader ? state.baseDamage : (1 + (state.abilities.childBallPower || 0));
+                let baseAttack = b.isLeader ? state.baseDamage : (1 + (state.abilities.childBallPower || 0));
                 if (b.isLeader) {
-                    damage += Math.max(1, state.baseDamage); 
+                    baseAttack += Math.max(1, state.baseDamage); 
                     if (state.abilities.hyperDrill > 1) {
-                        damage += 5 * (state.abilities.hyperDrill - 1);
+                        baseAttack += 5 * (state.abilities.hyperDrill - 1);
                     }
                 }
                 
-                damage += bounceDamage;
+                let totalBaseDmg = baseAttack + bounceDamage;
+                
+                let applyExplosion = false;
+                let explosionBase = 0;
+                if (isFirstHit && state.explosionLevel > 0) {
+                    applyExplosion = true;
+                    explosionBase = state.explosionLevel * 10;
+                    totalBaseDmg += explosionBase;
+                }
 
+                let critMultiplier = 1.0;
+                let critTriggered = false;
                 const critLevel = state.abilities.criticalHit || 0;
                 if (critLevel > 0) {
                     const critChance = Math.min(1.0, 0.05 * critLevel);
-                    let critMultiplier = 2.0;
-                    if (critLevel > 20) {
-                        critMultiplier += (critLevel - 20) * 0.5;
-                    }
                     if (Math.random() < critChance) {
-                        damage *= critMultiplier;
+                        critTriggered = true;
+                        critMultiplier = 2.0;
+                        if (critLevel > 20) {
+                            critMultiplier += (critLevel - 20) * 0.5;
+                        }
                     }
                 }
 
+                let lastSpurtMultiplier = 1.0;
                 let hasBlockNearBottom = state.blocks.some(bl => bl.hp > 0 && !bl.isTransparent && (bl.row * BLOCK_SIZE + BLOCK_SIZE) >= DOTTED_LINE_Y - BLOCK_SIZE);
                 if (state.abilities.lastSpurt && hasBlockNearBottom) {
-                    damage *= Math.pow(2, state.abilities.lastSpurt);
+                    lastSpurtMultiplier = Math.pow(2, state.abilities.lastSpurt);
                 }
 
-                let applyExplosion = false;
-                if (isFirstHit && state.explosionLevel > 0) {
-                    applyExplosion = true;
+                let nitroMultiplier = 1.0;
+                let expandMultiplier = 1.0;
+                if (applyExplosion) {
+                     const nitroLevel = state.abilities.nitroBooster || 0;
+                     nitroMultiplier = 1 + (nitroLevel * 0.5);
+                     expandMultiplier = 1 + ((state.abilities.explosionExpand || 0) * 0.1);
                 }
 
-                let multiplier = 1;
-               if (b.hitCount >= 200) multiplier = 5;
-               else if (b.hitCount >= 100) multiplier = 2;
+                let comboMultiplier = 1;
+                if (b.hitCount >= 200) comboMultiplier = 5;
+                else if (b.hitCount >= 100) comboMultiplier = 2;
                
-               damage *= multiplier;
-
-               let instantKill = false;
+                let totalDamage = Math.floor(totalBaseDmg * critMultiplier * lastSpurtMultiplier * nitroMultiplier * expandMultiplier * comboMultiplier);
 
                let hitEdge = null;
                if (!hitHypotenuse) {
@@ -1439,46 +1501,38 @@
                }
 
                if (block.shield && block.shield === hitEdge) {
-                   damage = 0;
-                   instantKill = false;
+                   totalDamage = 0;
                }
 
-               const prevHp = block.hp;
                if (!skipDamage) {
-                   if (instantKill) {
-                       block.hp = 0;
-                   } else {
-                       block.hp -= damage;
-                   }
+                   block.hp -= totalDamage;
                    if (b.penetrationMode && b.penetratedBlocks) {
                        b.penetratedBlocks.add(block.id);
                    }
                }
                
                 if (applyExplosion) {
-                     const nitroLevel = state.abilities.nitroBooster || 0;
-                     const nitroMultiplier = 1 + (nitroLevel * 0.5);
-                     const expandMultiplier = 1 + ((state.abilities.explosionExpand || 0) * 0.1);
-                     const expDmg = Math.floor((state.explosionLevel * 10) * nitroMultiplier * expandMultiplier);
+                    const splashDmg = Math.floor(explosionBase * critMultiplier * lastSpurtMultiplier * nitroMultiplier * expandMultiplier * comboMultiplier);
                     const targetCol = block.col;
                     const targetRow = block.row;
                     const expRadius = 1;
                     
                     state.blocks.forEach(nb => {
                         if (nb.hp > 0 && !nb.isTransparent && Math.abs(nb.col - targetCol) <= expRadius && Math.abs(nb.row - targetRow) <= expRadius) {
-                            nb.hp -= expDmg;
-                            nb.hitTimer = 0.1;
-                           
-                            state.effects.push({
-                               type: 'damage_popup',
-                               text: expDmg.toString(),
-                               x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                               y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2 - 10,
-                               timer: 0.5,
-                               scale: 1.2,
-                               isBlue: false,
-                               color: '#ef4444' // Red color for explosion
-                           });
+                            if (nb !== block || skipDamage) {
+                                nb.hp -= splashDmg;
+                                nb.hitTimer = 0.1;
+                                state.effects.push({
+                                   type: 'damage_popup',
+                                   text: splashDmg.toString(),
+                                   x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                                   y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2 - 10,
+                                   timer: 0.5,
+                                   scale: 1.2,
+                                   isBlue: false,
+                                   color: '#ef4444' // Red color for explosion
+                               });
+                            }
                        }
                    });
                    
@@ -1498,20 +1552,38 @@
                if (!skipDamage) {
                    b.hitCount++;
                    
-                   if (multiplier > 1 && damage > 0 && block.hp < prevHp) {
-                       state.effects.push({
-                           type: 'damage_popup',
-                           text: damage.toString(),
-                           x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                           y: closestY - 20,
-                           timer: 0.6,
-                           scale: multiplier === 5 ? 1.5 : 1.2,
-                           isBlue: multiplier === 5
-                       });
-                   }
-                   
-                   if (damage > 0 || instantKill || applyExplosion) {
-                       block.hitTimer = 0.1; // Trigger flash only if damaged
+                   if (totalDamage > 0) {
+                       let prefix = "";
+                       let scale = 1.2;
+                       let isBlue = false;
+                       let color = undefined;
+                       
+                       if (comboMultiplier === 5) {
+                           prefix = "5倍！";
+                           scale = 1.5;
+                           isBlue = true;
+                       } else if (comboMultiplier === 2) {
+                           prefix = "2倍！";
+                           scale = 1.2;
+                       } else if (critTriggered) {
+                           prefix = "CRITICAL！";
+                           scale = 1.4;
+                           color = '#f87171';
+                       }
+                       
+                       if (prefix !== "" || applyExplosion) {
+                           state.effects.push({
+                               type: 'damage_popup',
+                               text: prefix ? `${prefix}(+${totalDamage})` : `+${totalDamage}`,
+                               x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                               y: closestY - 20,
+                               timer: 0.6,
+                               scale: scale,
+                               isBlue: isBlue,
+                               color: color
+                           });
+                       }
+                       block.hitTimer = 0.1; // Trigger flash
                    }
                }
                
