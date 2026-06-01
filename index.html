@@ -1523,16 +1523,18 @@
                             if (nb !== block || skipDamage) {
                                 nb.hp -= splashDmg;
                                 nb.hitTimer = 0.1;
-                                state.effects.push({
-                                   type: 'damage_popup',
-                                   text: splashDmg.toString(),
-                                   x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                                   y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2 - 10,
-                                   timer: 0.5,
-                                   scale: 1.2,
-                                   isBlue: false,
-                                   color: '#ef4444' // Red color for explosion
-                               });
+                                if (b.hitCount >= 100) {
+                                    state.effects.push({
+                                       type: 'damage_popup',
+                                       text: `+${splashDmg}`,
+                                       x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                                       y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2 - 10,
+                                       timer: 0.5,
+                                       scale: 1.2,
+                                       isBlue: false,
+                                       color: '#ef4444' // Red color for explosion
+                                   });
+                                }
                             }
                        }
                    });
@@ -1553,39 +1555,35 @@
                if (!skipDamage) {
                    b.hitCount++;
                    
-                   if (totalDamage > 0) {
-                       let prefix = "";
-                       let scale = 1.2;
-                       let isBlue = false;
-                       let color = undefined;
-                       
-                       if (comboMultiplier === 5) {
-                           prefix = "5倍！";
-                           scale = 1.5;
-                           isBlue = true;
-                       } else if (comboMultiplier === 2) {
-                           prefix = "2倍！";
-                           scale = 1.2;
-                       } else if (critTriggered) {
-                           prefix = "CRITICAL！";
-                           scale = 1.4;
-                           color = '#f87171';
-                       }
-                       
-                       if (prefix !== "" || applyExplosion) {
-                           state.effects.push({
-                               type: 'damage_popup',
-                               text: prefix ? `${prefix}(+${totalDamage})` : `+${totalDamage}`,
-                               x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                               y: closestY - 20,
-                               timer: 0.6,
-                               scale: scale,
-                               isBlue: isBlue,
-                               color: color
-                           });
-                       }
-                       block.hitTimer = 0.1; // Trigger flash
-                   }
+                        if (totalDamage > 0) {
+                        if (b.hitCount >= 100) {
+                            let scale = 1.2;
+                            let isBlue = false;
+                            let color = undefined;
+                            
+                            if (comboMultiplier === 5) {
+                                scale = 1.5;
+                                isBlue = true;
+                            } else if (comboMultiplier === 2) {
+                                scale = 1.2;
+                            } else if (critTriggered) {
+                                scale = 1.4;
+                                color = '#f87171';
+                            }
+                            
+                            state.effects.push({
+                                type: 'damage_popup',
+                                text: `+${totalDamage}`,
+                                x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                                y: closestY - 20,
+                                timer: 0.6,
+                                scale: scale,
+                                isBlue: isBlue,
+                                color: color
+                            });
+                        }
+                        block.hitTimer = 0.1; // Trigger flash
+                    }
                }
                
                 if ((block.type === 'muddy' || block.type === 'slime' || block.type === 'boss_muddy') && !b.penetrationMode) {
