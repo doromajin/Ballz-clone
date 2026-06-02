@@ -131,7 +131,7 @@
       <div class="game-over-overlay active" id="gameOverOverlay">
         
         <div style="position: absolute; top: 4.5rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; pointer-events: auto;">
-            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.5.4</div>
+            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.5.5</div>
             <button onclick="window.location.href = window.location.pathname + '?t=' + new Date().getTime()" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 0.85rem; transition: all 0.2s;">🔄 更新 (Reload)</button>
         </div>
 
@@ -166,7 +166,7 @@
         
         <!-- Base Damage -->
         <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1rem; border: 2px solid rgba(250,204,21,0.3);">
-            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #cbd5e1; font-weight: bold;">BASE DAMAGE (Max 30)</div>
+            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #cbd5e1; font-weight: bold;">BASE DAMAGE (Max 50)</div>
             <div style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #38bdf8;">Lv. <span id="shopBaseDamage">1</span></div>
             <button class="retry-button" id="upgradeBtn" style="padding: 0.8rem; width: 100%; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #facc15, #eab308); color: #000;">
                 UPGRADE (<span id="upgradeCost">100</span>)
@@ -175,7 +175,7 @@
 
         <!-- Explosion Damage -->
         <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; width: 85%; max-width: 320px; text-align: center; margin-bottom: 1rem; border: 2px solid rgba(248,113,113,0.3);">
-            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #fca5a5; font-weight: bold;">EXPLOSION DMG x10 (1st hit only, Max 30)</div>
+            <div style="font-size: 1rem; margin-bottom: 0.5rem; color: #fca5a5; font-weight: bold;">EXPLOSION DMG x10 (1st hit only, Max 50)</div>
             <div style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #f87171;">Lv. <span id="shopExplosion">0</span></div>
             <button class="retry-button" id="upgradeExplosionBtn" style="padding: 0.8rem; width: 100%; font-size: 1.1rem; border-radius: 12px; background: linear-gradient(135deg, #f87171, #dc2626); color: #fff;">
                 UPGRADE (<span id="costExplosion">150</span>)
@@ -560,8 +560,8 @@
         
         document.getElementById('shopCoins').innerText = state.totalCoins || 0;
         
-        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 30 ? '30 (MAX)' : `${state.baseDamage} / 30`;
-        if (state.baseDamage >= 30) {
+        document.getElementById('shopBaseDamage').innerText = state.baseDamage >= 50 ? '50 (MAX)' : `${state.baseDamage} / 50`;
+        if (state.baseDamage >= 50) {
             document.getElementById('upgradeBtn').innerText = 'MAX LEVEL';
             document.getElementById('upgradeBtn').style.opacity = '0.5';
         } else {
@@ -569,8 +569,8 @@
             document.getElementById('upgradeBtn').style.opacity = state.totalCoins >= costBase ? '1' : '0.5';
         }
         
-        document.getElementById('shopExplosion').innerText = state.explosionLevel >= 30 ? '30 (MAX)' : `${state.explosionLevel} / 30`;
-        if (state.explosionLevel >= 30) {
+        document.getElementById('shopExplosion').innerText = state.explosionLevel >= 50 ? '50 (MAX)' : `${state.explosionLevel} / 50`;
+        if (state.explosionLevel >= 50) {
             document.getElementById('upgradeExplosionBtn').innerText = 'MAX LEVEL';
             document.getElementById('upgradeExplosionBtn').style.opacity = '0.5';
         } else {
@@ -618,7 +618,7 @@
 
     upgradeBtn.addEventListener('click', () => {
         const cost = 50 + (state.baseDamage - 1) * 30;
-        if (state.totalCoins >= cost && state.baseDamage < 30) {
+        if (state.totalCoins >= cost && state.baseDamage < 50) {
             state.totalCoins -= cost;
             state.baseDamage++;
             storage.setItem('dinoTotalCoins', state.totalCoins.toString());
@@ -630,7 +630,7 @@
     
     upgradeExplosionBtn.addEventListener('click', () => {
         const cost = 100 + (state.explosionLevel) * 50;
-        if (state.totalCoins >= cost && state.explosionLevel < 30) {
+        if (state.totalCoins >= cost && state.explosionLevel < 50) {
             state.totalCoins -= cost;
             state.explosionLevel++;
             storage.setItem('dinoTotalCoins', state.totalCoins.toString());
