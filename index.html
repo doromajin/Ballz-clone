@@ -275,12 +275,20 @@
           let bossType = 'boss';
           let shield = null;
           
-          if (score % 500 === 0) {
-              bossType = 'boss_muddy';
-          } else if (score >= 150) {
-              bossType = Math.random() < 0.5 ? 'boss_iron' : 'boss';
-              if (bossType === 'boss') shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
-          } else if (score >= 100) {
+           if (score % 500 === 0) {
+               bossType = 'boss_muddy';
+           } else if (score >= 200) {
+               const r = Math.random();
+               if (r < 0.25) bossType = 'boss_phantom';
+               else if (r < 0.6) bossType = 'boss_iron';
+               else {
+                   bossType = 'boss';
+                   shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
+               }
+           } else if (score >= 150) {
+               bossType = Math.random() < 0.5 ? 'boss_iron' : 'boss';
+               if (bossType === 'boss') shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
+           } else if (score >= 100) {
               shield = ['top', 'right', 'bottom', 'left'][Math.floor(Math.random() * 4)];
           }
 
@@ -700,7 +708,17 @@
       const vx = aim.dirX * BALL_SPEED;
       const vy = aim.dirY * BALL_SPEED;
 
-      state.balls = Array.from({ length: state.ballsTotal }).map((_, idx) => ({
+      let spawnCount = state.ballsTotal;
+      state.childDamageMultiplier = 1.0;
+      if (spawnCount > 500) {
+          spawnCount = 500;
+          let mainBalls = state.mainBallsLevel || 1;
+          let expectedChildren = Math.max(1, state.ballsTotal - mainBalls);
+          let spawnedChildren = Math.max(1, 500 - mainBalls);
+          state.childDamageMultiplier = expectedChildren / spawnedChildren;
+      }
+
+      state.balls = Array.from({ length: spawnCount }).map((_, idx) => ({
         x: state.startX,
         y: FLOOR_Y - BALL_RADIUS,
         vx,
@@ -737,7 +755,8 @@
         { id: 'insurance', name: 'Insurance', desc: '親玉の下部バウンド+1回', color: '#34d399' },
         { id: 'lastSpurt', name: 'Last Spurt', desc: 'ピンチ時に全ダメージ2倍', color: '#ef4444' },
         { id: 'hyperDrill', name: 'Hyper Drill', desc: '常時貫通（重複時ダメ+5）', color: '#0ea5e9' },
-        { id: 'nitroBooster', name: 'Nitro Booster', desc: '爆破ダメージx1.5', color: '#f97316' }
+        { id: 'nitroBooster', name: 'Nitro Booster', desc: '爆破ダメージx1.5', color: '#f97316' },
+        { id: 'phantomStrike', name: 'Phantom Strike', desc: '親玉が透明ブロックを攻撃可', color: '#8b5cf6' }
     ];
 
     const generateAbilities = () => {
@@ -799,6 +818,10 @@
                     case 'nitroBooster':
                         effectText = `爆破倍率 x${(1.0 + currentLevel * 0.5).toFixed(1)} ➔ x${(1.0 + (currentLevel + 1) * 0.5).toFixed(1)}`;
                         break;
+                    case 'phantomStrike':
+                        effectText = `透明ダメ +${currentLevel > 0 ? (currentLevel - 1) * 5 : 0} ➔ +${currentLevel * 5}`;
+                        if (currentLevel === 0) effectText = `透明ブロックに攻撃可能!`;
+                        break;
                 }
             }
             
@@ -852,7 +875,7 @@
                 }
              }
           });
-          state.ballsLaunched = state.ballsTotal;
+          state.ballsLaunched = state.balls.length;
           state.status = 'RESOLVING';
           return;
       }
@@ -1015,7 +1038,7 @@
 
         if (item.type === 'thunder_v') {
             state.blocks.forEach(b => {
-                if (b.type === 'ghost' && b.isTransparent) return;
+                if ((b.type === 'ghost' || b.type === 'boss_phantom') && b.isTransparent) return;
                 if (Math.abs(b.col - item.col) < 0.5) {
                     b.hp -= thunderDamage;
                     b.hitTimer = 0.15;
@@ -1023,7 +1046,7 @@
             });
         } else {
             state.blocks.forEach(b => {
-                if (b.type === 'ghost' && b.isTransparent) return;
+                if ((b.type === 'ghost' || b.type === 'boss_phantom') && b.isTransparent) return;
                 if (Math.abs(b.row - item.row) < 0.5) {
                     b.hp -= thunderDamage;
                     b.hitTimer = 0.15;
@@ -1100,7 +1123,7 @@
                   let mainColor = '#38bdf8';
                   if (b.type === 'iron') mainColor = '#94a3b8';
                   else if (b.type === 'muddy' || b.type === 'slime') mainColor = '#4ade80';
-                  else if (b.type === 'ghost') mainColor = '#c084fc';
+                  else if (b.type === 'ghost' || b.type === 'boss_phantom') mainColor = '#c084fc';
                   else mainColor = `hsl(${Math.max(0, 200 - b.hp * 2)}, 80%, 60%)`;
                   
                   state.warpBlocks.push({
@@ -1159,13 +1182,13 @@
 
       if (state.status === 'SHOOTING') {
         state.shootTimer += dt * state.speedMult;
-        while (state.shootTimer > SHOOT_DELAY && state.ballsLaunched < state.ballsTotal) {
+        while (state.shootTimer > SHOOT_DELAY && state.ballsLaunched < state.balls.length) {
           state.balls[state.ballsLaunched].active = true;
           state.balls[state.ballsLaunched].launched = true;
           state.ballsLaunched++;
           state.shootTimer -= SHOOT_DELAY;
         }
-        if (state.ballsLaunched === state.ballsTotal) {
+        if (state.ballsLaunched === state.balls.length) {
           state.status = 'RESOLVING';
         }
       }
@@ -1290,7 +1313,7 @@
                     if (item.type === 'split') {
                         item.triggered = true; // Flags for removal at turn end
                         
-                        if (!b.isSplitClone && state.balls.length < 3000) {
+                        if (!b.isSplitClone && state.balls.length < 500) {
                             const angle = Math.atan2(b.vy, b.vx);
                             const speed = BALL_SPEED;
                             const jitter1 = (Math.PI / 6) + Math.random() * (Math.PI / 6);
@@ -1352,7 +1375,9 @@
              // Block Collision
              for (let j = 0; j < state.blocks.length; j++) {
                const block = state.blocks[j];
-               if (block.hp <= 0 || block.isTransparent) continue;
+                let isPhantomTarget = (block.type === 'ghost' || block.type === 'boss_phantom') && block.isTransparent;
+                if (block.hp <= 0) continue;
+                if (isPhantomTarget && !(b.isLeader && state.abilities.phantomStrike > 0)) continue;
 
                const blockLeft = block.col * BLOCK_SIZE;
                const blockRight = blockLeft + BLOCK_SIZE * (block.width || 1);
@@ -1440,11 +1465,14 @@
                     skipDamage = true;
                 }
                   
-                let baseAttack = b.isLeader ? state.baseDamage : (1 + (state.abilities.childBallPower || 0));
+                let baseAttack = b.isLeader ? state.baseDamage : (1 + (state.abilities.childBallPower || 0)) * (state.childDamageMultiplier || 1.0);
                 if (b.isLeader) {
                     baseAttack += Math.max(1, state.baseDamage); 
                     if (state.abilities.hyperDrill > 1) {
                         baseAttack += 5 * (state.abilities.hyperDrill - 1);
+                    }
+                    if (isPhantomTarget && state.abilities.phantomStrike > 1) {
+                        baseAttack += 5 * (state.abilities.phantomStrike - 1);
                     }
                 }
                 
@@ -1523,18 +1551,16 @@
                             if (nb !== block || skipDamage) {
                                 nb.hp -= splashDmg;
                                 nb.hitTimer = 0.1;
-                                if (b.hitCount >= 100) {
-                                    state.effects.push({
-                                       type: 'damage_popup',
-                                       text: `+${splashDmg}`,
-                                       x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                                       y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2 - 10,
-                                       timer: 0.5,
-                                       scale: 1.2,
-                                       isBlue: false,
-                                       color: '#ef4444' // Red color for explosion
-                                   });
-                                }
+                                state.effects.push({
+                                   type: 'damage_popup',
+                                   text: `+${splashDmg}`,
+                                   x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                                   y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2 - 10,
+                                   timer: 0.5,
+                                   scale: 1.2,
+                                   isBlue: false,
+                                   color: '#ef4444' // Red color for explosion
+                               });
                             }
                        }
                    });
@@ -1670,7 +1696,7 @@
                       b.hp = Math.floor(1000 + state.score * 20 + Math.pow(state.score / 100, 2) * 500);
                       b.type = 'boss'; // becomes normal boss
                      spawnParticles(bx, by, '#94a3b8', 50); // Heavy metal fragments
-                 } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy') {
+                 } else if (b.type === 'boss' || b.type === 'boss_shield' || b.type === 'boss_muddy' || b.type === 'boss_phantom') {
                      bossDefeated = true;
                      if (b.is100Boss) state.defeatedBossWas100 = true;
                      spawnParticles(bx, by, '#f43f5e', 50);
@@ -1678,7 +1704,7 @@
                  } else {
                      let mainColor = '#38bdf8';
                      if (b.type === 'muddy' || b.type === 'slime') mainColor = '#4ade80';
-                     else if (b.type === 'ghost') mainColor = '#c084fc';
+                     else if (b.type === 'ghost' || b.type === 'boss_phantom') mainColor = '#c084fc';
                      else mainColor = `hsl(${Math.max(0, 200 - b.hp * 2)}, 80%, 60%)`;
                      
                      spawnParticles(bx, by, mainColor, 15);
@@ -1837,7 +1863,7 @@
                    if (newCol > GRID_COLS - (b.width || 1)) newCol = GRID_COLS - (b.width || 1);
                }
                
-               return { ...b, row: b.row + 1, col: newCol, shield: newShield, isTransparent: b.type === 'ghost' ? !b.isTransparent : false };
+               return { ...b, row: b.row + 1, col: newCol, shield: newShield, isTransparent: (b.type === 'ghost' || b.type === 'boss_phantom') ? !b.isTransparent : false };
              });
              state.items = state.items.filter(i => !i.collected && !i.triggered).map(i => {
                 return { ...i, row: i.row + 1 };
@@ -2164,7 +2190,7 @@
         const sizeH = BLOCK_SIZE - margin * 2;
         
         ctx.save();
-        if (block.isTransparent) {
+        if ((block.type === 'ghost' || block.type === 'boss_phantom') && block.isTransparent) {
            ctx.globalAlpha = 0.3;
         }
 
@@ -2179,7 +2205,7 @@
            mainColor = '#ef4444'; highlightColor = '#fca5a5';
         } else if (block.type === 'muddy' || block.type === 'slime') {
            mainColor = '#65a30d'; highlightColor = '#84cc16';
-        } else if (block.type === 'ghost') {
+        } else if (block.type === 'ghost' || block.type === 'boss_phantom') {
            mainColor = '#a855f7'; highlightColor = '#c084fc';
          } else if (block.type === 'shield') {
             mainColor = '#eab308'; highlightColor = '#fde047';
@@ -2273,6 +2299,11 @@
                 ctx.beginPath(); ctx.arc(x + margin + 20, y + margin + 25, 8, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(x + margin + sizeW - 25, y + margin + 40, 12, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(x + margin + sizeW/2, y + margin + sizeH - 20, 10, 0, Math.PI*2); ctx.fill();
+            } else if (block.type === 'boss_phantom') {
+                ctx.fillStyle = '#6b21a8';
+                ctx.beginPath();
+                ctx.roundRect(x + margin, y + margin, sizeW, sizeH, 16);
+                ctx.fill();
             } else {
                 ctx.fillStyle = mainColor;
                 ctx.beginPath();
@@ -2286,14 +2317,14 @@
             ctx.beginPath(); ctx.moveTo(x + margin, y + margin + 45); ctx.lineTo(x + margin - 18, y + margin + 65); ctx.lineTo(x + margin, y + margin + 85); ctx.fill();
             
             // Eye
-            ctx.fillStyle = block.type === 'boss_muddy' ? '#3f6212' : '#7f1d1d';
+            ctx.fillStyle = block.type === 'boss_muddy' ? '#3f6212' : (block.type === 'boss_phantom' ? '#4c1d95' : '#7f1d1d');
             ctx.beginPath(); ctx.arc(x + margin + sizeW * 0.65, y + margin + sizeH * 0.35, 12, 0, Math.PI*2); ctx.fill();
             
             // Angry eyebrow
-            ctx.lineWidth = 5; ctx.strokeStyle = block.type === 'boss_muddy' ? '#3f6212' : '#7f1d1d'; ctx.beginPath(); ctx.moveTo(x + margin + sizeW * 0.55, y + margin + sizeH * 0.25); ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH * 0.30); ctx.stroke();
+            ctx.lineWidth = 5; ctx.strokeStyle = block.type === 'boss_muddy' ? '#3f6212' : (block.type === 'boss_phantom' ? '#4c1d95' : '#7f1d1d'); ctx.beginPath(); ctx.moveTo(x + margin + sizeW * 0.55, y + margin + sizeH * 0.25); ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH * 0.30); ctx.stroke();
             
             // Teeth
-            ctx.fillStyle = block.type === 'boss_muddy' ? '#3f6212' : '#7f1d1d';
+            ctx.fillStyle = block.type === 'boss_muddy' ? '#3f6212' : (block.type === 'boss_phantom' ? '#4c1d95' : '#7f1d1d');
             ctx.beginPath(); 
             ctx.moveTo(x + margin + sizeW * 0.65, y + margin + sizeH); 
             ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH - 18); 
