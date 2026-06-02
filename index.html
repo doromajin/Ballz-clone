@@ -131,8 +131,8 @@
       <div class="game-over-overlay active" id="gameOverOverlay">
         
         <div style="position: absolute; top: 4.5rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; pointer-events: auto;">
-            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.3.0</div>
-            <button onclick="location.reload()" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 0.85rem; transition: all 0.2s;">🔄 更新 (Reload)</button>
+            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.4.0</div>
+            <button onclick="window.location.href = window.location.pathname + '?t=' + new Date().getTime()" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 0.85rem; transition: all 0.2s;">🔄 更新 (Reload)</button>
         </div>
 
         <h2 class="game-over-title" id="overlayTitle">DINO BALLZ</h2>
@@ -1923,7 +1923,10 @@
                
                return { ...b, row: b.row + 1, col: newCol, shield: newShield, isTransparent: (b.type === 'ghost' || b.type === 'boss_phantom') ? !b.isTransparent : false };
              });
-             state.items = state.items.filter(i => !i.collected && !i.triggered).map(i => {
+             state.items = state.items.filter(i => !i.collected && !i.triggered && (i.type === 'muddy_item' || i.row < GRID_ROWS + 2)).map(i => {
+                if (i.type === 'muddy_item') {
+                    return { ...i, col: Math.floor(Math.random() * GRID_COLS), row: Math.floor(Math.random() * 8) + 1 };
+                }
                 return { ...i, row: i.row + 1 };
              });
 
