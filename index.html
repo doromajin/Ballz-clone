@@ -1358,17 +1358,6 @@
                         } else {
                             b.destroyed = true; 
                         }
-                        
-                        state.effects.push({
-                            type: 'damage_popup',
-                            text: 'ABSORBED',
-                            x: b.x,
-                            y: b.y - 10,
-                            timer: 0.8,
-                            scale: 1.0,
-                            isBlue: false,
-                            color: '#84cc16' // Muddy green
-                        });
                         break subStepLoop;
                     } else if (item.type === 'split') {
                         item.triggered = true; // Flags for removal at turn end
