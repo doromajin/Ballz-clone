@@ -131,7 +131,7 @@
       <div class="game-over-overlay active" id="gameOverOverlay">
         
         <div style="position: absolute; top: 4.5rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; pointer-events: auto;">
-            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.4.0</div>
+            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.4.4</div>
             <button onclick="window.location.href = window.location.pathname + '?t=' + new Date().getTime()" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 0.85rem; transition: all 0.2s;">🔄 更新 (Reload)</button>
         </div>
 
@@ -394,8 +394,14 @@
              else if (itemRand < 0.2) type = 'thunder_h';
              else if (itemRand < 0.3) type = 'split';
              else if (score >= 500 && itemRand < 0.45) type = 'trap_ball';
-             else if (score >= 300 && itemRand < 0.55) type = 'muddy_item';
-             else if (itemRand < (score <= 100 ? 0.70 : 0.60)) type = 'coin';
+             else if (score >= 300) {
+                 const trapThreshold = score >= 500 ? 0.45 : 0.30;
+                 const muddyRate = 0.10 + Math.min(0.25, Math.floor((score - 300) / 100) * 0.02);
+                 if (itemRand < trapThreshold + muddyRate) type = 'muddy_item';
+                 else if (itemRand < trapThreshold + muddyRate + 0.15) type = 'coin';
+             } else {
+                 if (itemRand < 0.45) type = 'coin';
+             }
           }
           
           if (type === 'add_ball') {
@@ -431,7 +437,7 @@
       items: [],
       balls: [],
       score: 0,
-      ballsTotal: 5,
+      ballsTotal: 4 + (parseInt(storage.getItem('dinoMainBallsLevel')) || 1),
       addedBallsNextTurn: 0,
       startX: LOGICAL_WIDTH / 2,
       firstReturnX: null,
@@ -750,7 +756,7 @@
         history: [], 
         hitCount: 0,
         penetrationMode: false,
-        remainingPenetrations: (idx < (state.mainBallsLevel || 1)) ? (state.abilities.hyperDrill || 0) : 0,
+        remainingPenetrations: (idx < (state.mainBallsLevel || 1)) ? ((state.abilities.hyperDrill || 0) + (state.penetrationLevel || 0)) : 0,
         penetratedBlocks: new Set()
       }));
 
@@ -949,7 +955,8 @@
             const username = usernameInput.value.trim() || "Player";
             storage.setItem('dinoUsername', username);
             const initRow = generateRow(1, 1);
-            let startingBalls = 5;
+            const currentMainBallsLevel = state.mainBallsLevel || 1;
+            let startingBalls = 4 + currentMainBallsLevel;
             
             state = {
                 status: 'AIMING',
@@ -1208,6 +1215,14 @@
           state.ballsLaunched++;
           state.shootTimer -= SHOOT_DELAY;
         }
+
+        let anyActive = false;
+        for (let i = 0; i < state.ballsLaunched; i++) {
+            if (state.balls[i].active) { anyActive = true; break; }
+        }
+        if (!anyActive && state.ballsLaunched > 0 && state.ballsLaunched < state.balls.length) {
+             state.shootTimer += SHOOT_DELAY; 
+        }
         if (state.ballsLaunched === state.balls.length) {
           state.status = 'RESOLVING';
         }
@@ -1350,6 +1365,14 @@
                             break subStepLoop;
                         }
                     } else if (item.type === 'muddy_item') {
+                        if (b.lastItems.has(item.id) || b.remainingPenetrations > 0) {
+                            if (!b.lastItems.has(item.id)) {
+                                b.remainingPenetrations--;
+                                b.lastItems.add(item.id);
+                            }
+                            continue;
+                        }
+                        
                         b.active = false;
                         b.history = [];
                         if (b.isLeader) {
@@ -1877,22 +1900,26 @@
           } else if (state.status === 'ABILITY_SELECT') {
              // 完全にロック（ポーズ）状態を維持。アビリティ確定までステージ進行を停止する。
           } else {
-             state.score += 1;
-             if (state.score > 0 && state.score % 50 === 49) {
-                 state.bossWarningTimer = 2.0;
-                 state.bossWarningText = 'BOSS INCOMING';
-             } else if (state.score > 0 && state.score % 50 === 0) {
-                 state.bossWarningTimer = 2.0;
-                 state.bossWarningText = 'BOSS APPEARED!';
+             const isBossAlive = state.blocks.some(b => b.type.startsWith('boss'));
+
+             if (!isBossAlive) {
+                 state.score += 1;
+                 if (state.score > 0 && state.score % 50 === 49) {
+                     state.bossWarningTimer = 2.0;
+                     state.bossWarningText = 'BOSS INCOMING';
+                 } else if (state.score > 0 && state.score % 50 === 0) {
+                     state.bossWarningTimer = 2.0;
+                     state.bossWarningText = 'BOSS APPEARED!';
+                 }
+                 
+                 if (state.score > highScore) {
+                    highScore = state.score;
+                    storage.setItem('dinoHighScore', highScore);
+                 }
              }
+
              state.ballsTotal += state.addedBallsNextTurn;
              state.addedBallsNextTurn = 0;
-
-             if (state.score > highScore) {
-                highScore = state.score;
-                storage.setItem('dinoHighScore', highScore);
-             }
-
              state.startX = state.firstReturnX !== null ? state.firstReturnX : state.startX;
              
              let gameOver = false;
@@ -1923,9 +1950,25 @@
                
                return { ...b, row: b.row + 1, col: newCol, shield: newShield, isTransparent: (b.type === 'ghost' || b.type === 'boss_phantom') ? !b.isTransparent : false };
              });
-             state.items = state.items.filter(i => !i.collected && !i.triggered && (i.type === 'muddy_item' || i.row < GRID_ROWS + 2)).map(i => {
+             state.items = state.items.map(i => {
                 if (i.type === 'muddy_item') {
-                    return { ...i, col: Math.floor(Math.random() * GRID_COLS), row: Math.floor(Math.random() * 8) + 1 };
+                    return { ...i, lifetime: (i.lifetime === undefined ? 5 : i.lifetime) - 1 };
+                }
+                return i;
+             }).filter(i => !i.collected && !i.triggered && (i.type === 'muddy_item' ? i.lifetime > 0 : i.row < GRID_ROWS + 2)).map(i => {
+                if (i.type === 'muddy_item') {
+                    let newCol, newRow;
+                    let attempts = 0;
+                    do {
+                        newCol = Math.floor(Math.random() * GRID_COLS);
+                        newRow = Math.floor(Math.random() * 8) + 1;
+                        attempts++;
+                    } while (
+                        attempts < 50 &&
+                        (state.blocks.some(b => b.col === newCol && b.row === newRow) ||
+                         state.items.some(it => it.id !== i.id && it.col === newCol && it.row === newRow))
+                    );
+                    return { ...i, col: newCol, row: newRow };
                 }
                 return { ...i, row: i.row + 1 };
              });
@@ -1943,7 +1986,8 @@
                
                updateUI();
              } else {
-               const newRow = generateRow(0, state.score);
+               const genScore = isBossAlive ? Math.max(1, state.score - 1) : state.score;
+               const newRow = generateRow(0, genScore);
                state.blocks.push(...newRow.blocks);
                state.items.push(...newRow.items);
                state.status = 'AIMING';
