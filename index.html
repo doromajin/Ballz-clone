@@ -884,7 +884,7 @@
     let isDragging = false; 
 
     const handleInputDown = (pt) => {
-      if ((state.status === 'SHOOTING' || state.status === 'RESOLVING') && pt.y > LOGICAL_HEIGHT - 90 && pt.x > LOGICAL_WIDTH - 90) {
+      if ((state.status === 'SHOOTING' || state.status === 'RESOLVING') && pt.y > LOGICAL_HEIGHT - 100 && pt.x > LOGICAL_WIDTH - 100) {
           state.balls.forEach(b => {
              if(b.active || !b.launched) {
                 b.active = false;
@@ -2785,27 +2785,27 @@
 
       // Retrieve Balls Button
       if (state.status === 'SHOOTING' || state.status === 'RESOLVING') {
-        const btnX = LOGICAL_WIDTH - 45;
-        const btnY = LOGICAL_HEIGHT - 45;
+        const btnX = LOGICAL_WIDTH - 55;
+        const btnY = LOGICAL_HEIGHT - 50;
         
         ctx.fillStyle = 'rgba(14, 165, 233, 0.8)';
         ctx.strokeStyle = '#7dd3fc';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(btnX, btnY, 30, 0, Math.PI * 2);
+        ctx.arc(btnX, btnY, 45, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px "Nunito", sans-serif';
+        ctx.font = 'bold 18px "Nunito", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText("DOWN", btnX, btnY - 4);
+        ctx.fillText("DOWN", btnX, btnY - 8);
         
         ctx.beginPath();
-        ctx.moveTo(btnX - 8, btnY + 6);
-        ctx.lineTo(btnX + 8, btnY + 6);
-        ctx.lineTo(btnX, btnY + 16);
+        ctx.moveTo(btnX - 12, btnY + 8);
+        ctx.lineTo(btnX + 12, btnY + 8);
+        ctx.lineTo(btnX, btnY + 22);
         ctx.fill();
       }
       if (state.bossWarningTimer > 0) {
