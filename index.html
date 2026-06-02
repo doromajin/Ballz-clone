@@ -131,7 +131,7 @@
       <div class="game-over-overlay active" id="gameOverOverlay">
         
         <div style="position: absolute; top: 4.5rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; pointer-events: auto;">
-            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.4.4</div>
+            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.5.3</div>
             <button onclick="window.location.href = window.location.pathname + '?t=' + new Date().getTime()" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 0.85rem; transition: all 0.2s;">🔄 更新 (Reload)</button>
         </div>
 
@@ -783,12 +783,20 @@
         { id: 'lastSpurt', name: 'Last Spurt', desc: 'ピンチ時に全ダメージ2倍', color: '#ef4444' },
         { id: 'hyperDrill', name: 'Hyper Drill', desc: '毎ターン親玉の貫通回数+1', color: '#0ea5e9' },
         { id: 'nitroBooster', name: 'Nitro Booster', desc: '爆破ダメージx1.5', color: '#f97316' },
-        { id: 'phantomStrike', name: 'Phantom Strike', desc: '親玉が透明ブロックを攻撃可', color: '#8b5cf6' }
+        { id: 'phantomStrike', name: 'Phantom Strike', desc: '親玉が透明ブロックを攻撃可', color: '#8b5cf6' },
+        { id: 'extraChildBalls', name: '仲間呼び', desc: '子ボール+10', color: '#10b981' },
+        { id: 'explosionRange', name: 'Explosion Range', desc: '爆発範囲+1マス', color: '#ef4444' },
+        { id: 'reboundBomb', name: 'Rebound Bomb', desc: '親玉の下部バウンド時、爆発回数+1', color: '#f43f5e' }
     ];
 
     const generateAbilities = () => {
-        // Pick 3 random distinct abilities
-        const shuffled = [...ABILITY_POOL].sort(() => 0.5 - Math.random());
+        let availableAbilities = ABILITY_POOL.filter(ability => {
+            if (ability.id === 'explosionRange') {
+                return (state.abilities.explosionRange || 0) < 11;
+            }
+            return true;
+        });
+        const shuffled = availableAbilities.sort(() => 0.5 - Math.random());
         state.pendingAbilities = shuffled.slice(0, 3);
         
         const container = document.getElementById('abilityChoices');
@@ -827,7 +835,11 @@
                         effectText = `爆破ダメ +${currentLevel * 10}% ➔ +${(currentLevel + 1) * 10}%`;
                         break;
                     case 'goldRush':
-                        effectText = `コイン x${Math.pow(1.5, currentLevel).toFixed(1)} ➔ x${Math.pow(1.5, currentLevel + 1).toFixed(1)}`;
+                        {
+                            const currentMult = currentLevel > 0 ? currentLevel * 1.5 : 1.0;
+                            const nextMult = (currentLevel + 1) * 1.5;
+                            effectText = `コイン x${currentMult.toFixed(1)} ➔ x${nextMult.toFixed(1)}`;
+                        }
                         break;
                     case 'bounceMage':
                         effectText = `反射ダメ +${currentLevel * 2} ➔ +${(currentLevel + 1) * 2}`;
@@ -848,6 +860,15 @@
                         effectText = `透明ダメ +${currentLevel > 0 ? (currentLevel - 1) * 5 : 0} ➔ +${currentLevel * 5}`;
                         if (currentLevel === 0) effectText = `透明ブロックに攻撃可能!`;
                         break;
+                    case 'extraChildBalls':
+                        effectText = `追加ボール +${currentLevel * 10} ➔ +${(currentLevel + 1) * 10}`;
+                        break;
+                    case 'explosionRange':
+                        effectText = `爆発範囲 +${currentLevel}マス ➔ +${currentLevel + 1}マス`;
+                        break;
+                    case 'reboundBomb':
+                        effectText = `バウンド時爆発 +${currentLevel}回 ➔ +${currentLevel + 1}回`;
+                        break;
                 }
             }
             
@@ -860,6 +881,11 @@
             
             btn.addEventListener('click', () => {
                 state.abilities[ability.id] = (state.abilities[ability.id] || 0) + 1;
+                
+                if (ability.id === 'extraChildBalls') {
+                    state.ballsTotal += 10;
+                }
+
                 document.getElementById('abilityOverlay').classList.remove('active');
                 
                 // Proceed to warping
@@ -1182,7 +1208,8 @@
               state.ballsTotal += state.addedBallsNextTurn;
               state.addedBallsNextTurn = 0;
               
-              const bonusCoins = Math.floor(15 * Math.pow(1.5, state.abilities.goldRush || 0));
+              const currentGoldMult = state.abilities.goldRush ? state.abilities.goldRush * 1.5 : 1.0;
+              const bonusCoins = Math.floor(15 * currentGoldMult);
               state.totalCoins = (state.totalCoins || 0) + bonusCoins;
               storage.setItem('dinoTotalCoins', state.totalCoins.toString());
               
@@ -1297,6 +1324,13 @@
                if (shouldBounce) {
                    b.y = DOTTED_LINE_Y - BALL_RADIUS;
                    b.vy *= -1;
+                   if (state.abilities.reboundBomb) {
+                       b.reboundBombTriggers = b.reboundBombTriggers || 0;
+                       if (b.reboundBombTriggers < state.abilities.reboundBomb) {
+                           b.reboundExplosions = (b.reboundExplosions || 0) + 1;
+                           b.reboundBombTriggers++;
+                       }
+                   }
                } else {
                    b.active = false;
                    b.history = []; // Clear trail
@@ -1435,7 +1469,8 @@
                         state.addedBallsNextTurn++;
                     } else if (item.type === 'coin') {
                         item.collected = true;
-                        state.totalCoins += Math.floor(1 * Math.pow(1.5, state.abilities.goldRush || 0));
+                        const currentGoldMult = state.abilities.goldRush ? state.abilities.goldRush * 1.5 : 1.0;
+                        state.totalCoins += Math.floor(1 * currentGoldMult);
                         storage.setItem('dinoTotalCoins', state.totalCoins.toString());
                         // Particle effect
                         for(let k=0; k<8; k++){
@@ -1557,10 +1592,15 @@
                 }
                 
                 let totalBaseDmg = baseAttack + bounceDamage;
+                let isReboundExplosion = false;
+                if (!isFirstHit && b.isLeader && b.reboundExplosions > 0) {
+                    isReboundExplosion = true;
+                    b.reboundExplosions--;
+                }
                 
                 let applyExplosion = false;
                 let explosionBase = 0;
-                if (isFirstHit && state.explosionLevel > 0) {
+                if ((isFirstHit || isReboundExplosion) && state.explosionLevel > 0) {
                     applyExplosion = true;
                     explosionBase = state.explosionLevel * 10;
                     totalBaseDmg += explosionBase;
@@ -1624,7 +1664,7 @@
                     const splashDmg = Math.floor(explosionBase * critMultiplier * lastSpurtMultiplier * nitroMultiplier * expandMultiplier * comboMultiplier);
                     const targetCol = block.col;
                     const targetRow = block.row;
-                    const expRadius = 1;
+                    const expRadius = 1 + (state.abilities.explosionRange || 0);
                     
                     state.blocks.forEach(nb => {
                         if (nb.hp > 0 && !nb.isTransparent && Math.abs(nb.col - targetCol) <= expRadius && Math.abs(nb.row - targetRow) <= expRadius) {
