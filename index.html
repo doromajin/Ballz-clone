@@ -1344,7 +1344,12 @@
                                 active: true, launched: true, history: [],
                                 isLeader: false,
                                 lastItems: newLastItems,
-                                isSplitClone: true
+                                isSplitClone: true,
+                                bounceCount: 0,
+                                hitCount: 0,
+                                penetrationMode: false,
+                                remainingPenetrations: 0,
+                                penetratedBlocks: new Set()
                             });
                             
                             state.balls.push({
@@ -1354,7 +1359,12 @@
                                 active: true, launched: true, history: [],
                                 isLeader: false,
                                 lastItems: newLastItems,
-                                isSplitClone: true
+                                isSplitClone: true,
+                                bounceCount: 0,
+                                hitCount: 0,
+                                penetrationMode: false,
+                                remainingPenetrations: 0,
+                                penetratedBlocks: new Set()
                             });
                         }
                     } else if (item.type === 'thunder_v' || item.type === 'thunder_h') {
@@ -1403,7 +1413,7 @@
 
                let hitHypotenuse = false;
                let isColliding = false;
-               const canPenetrate = b.penetrationMode || (b.isLeader && state.abilities.hyperDrill > 0 && b.remainingPenetrations > 0 && !b.penetratedBlocks.has(block.id));
+               const canPenetrate = b.penetrationMode || (b.penetratedBlocks && b.penetratedBlocks.has(block.id)) || (b.isLeader && state.abilities.hyperDrill > 0 && b.remainingPenetrations > 0);
 
                if (block.shape && block.shape !== 'square') {
                    const rx = b.x - blockLeft;
@@ -1637,9 +1647,10 @@
                let penetrate = false;
                if (canPenetrate) {
                    penetrate = true;
-                   if (!b.penetrationMode && b.remainingPenetrations > 0 && !b.penetratedBlocks.has(block.id)) {
+                   if (!b.penetrationMode && b.remainingPenetrations > 0 && b.penetratedBlocks && !b.penetratedBlocks.has(block.id)) {
                        b.remainingPenetrations--;
                    }
+                   if (!b.penetratedBlocks) b.penetratedBlocks = new Set();
                    b.penetratedBlocks.add(block.id);
                }
 
