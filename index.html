@@ -131,7 +131,7 @@
       <div class="game-over-overlay active" id="gameOverOverlay">
         
         <div style="position: absolute; top: 4.5rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; pointer-events: auto;">
-            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.5.3</div>
+            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.5.4</div>
             <button onclick="window.location.href = window.location.pathname + '?t=' + new Date().getTime()" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 0.85rem; transition: all 0.2s;">🔄 更新 (Reload)</button>
         </div>
 
@@ -2534,10 +2534,22 @@
 
             if (block.type === 'healer') {
                 ctx.fillStyle = '#fff';
-                ctx.font = `900 ${Math.min(sizeW, sizeH) * 0.7}px "Nunito"`;
+                let fontSize = Math.min(sizeW, sizeH) * 0.7;
+                let textX = x + margin + sizeW/2;
+                let textY = y + margin + sizeH/2 + 2;
+
+                if (block.shape && block.shape.startsWith('triangle')) {
+                    fontSize = Math.min(sizeW, sizeH) * 0.45;
+                    if (block.shape === 'triangle_tl') { textX = x + margin + sizeW * 0.35; textY = y + margin + sizeH * 0.35 + 2; }
+                    else if (block.shape === 'triangle_tr') { textX = x + margin + sizeW * 0.65; textY = y + margin + sizeH * 0.35 + 2; }
+                    else if (block.shape === 'triangle_bl') { textX = x + margin + sizeW * 0.35; textY = y + margin + sizeH * 0.65 + 2; }
+                    else if (block.shape === 'triangle_br') { textX = x + margin + sizeW * 0.65; textY = y + margin + sizeH * 0.65 + 2; }
+                }
+
+                ctx.font = `900 ${fontSize}px "Nunito"`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('+', x + margin + sizeW/2, y + margin + sizeH/2 + 2);
+                ctx.fillText('+', textX, textY);
             }
 
             // Details
