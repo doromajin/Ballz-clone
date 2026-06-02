@@ -393,6 +393,8 @@
              if (itemRand < 0.1) type = 'thunder_v';
              else if (itemRand < 0.2) type = 'thunder_h';
              else if (itemRand < 0.3) type = 'split';
+             else if (score >= 500 && itemRand < 0.45) type = 'trap_ball';
+             else if (score >= 300 && itemRand < 0.55) type = 'muddy_item';
              else if (itemRand < (score <= 100 ? 0.70 : 0.60)) type = 'coin';
           }
           
@@ -1328,7 +1330,47 @@
                     currentItems.add(item.id);
                     if (b.lastItems.has(item.id)) continue; // Already processed this intersection
 
-                    if (item.type === 'split') {
+                    if (item.type === 'trap_ball') {
+                        if (!b.isLeader && Math.random() < 0.05) {
+                            b.active = false;
+                            b.history = [];
+                            b.destroyed = true;
+                            state.ballsTotal = Math.max(1, state.ballsTotal - 1);
+                            
+                            state.effects.push({
+                                type: 'damage_popup',
+                                text: '-1',
+                                x: b.x,
+                                y: b.y - 10,
+                                timer: 1.0,
+                                scale: 1.5,
+                                isBlue: false,
+                                color: '#ef4444' // Red
+                            });
+                            break subStepLoop;
+                        }
+                    } else if (item.type === 'muddy_item') {
+                        b.active = false;
+                        b.history = [];
+                        if (b.isLeader) {
+                            b.y = FLOOR_Y - BALL_RADIUS;
+                            if (state.firstReturnX === null) state.firstReturnX = b.x;
+                        } else {
+                            b.destroyed = true; 
+                        }
+                        
+                        state.effects.push({
+                            type: 'damage_popup',
+                            text: 'ABSORBED',
+                            x: b.x,
+                            y: b.y - 10,
+                            timer: 0.8,
+                            scale: 1.0,
+                            isBlue: false,
+                            color: '#84cc16' // Muddy green
+                        });
+                        break subStepLoop;
+                    } else if (item.type === 'split') {
                         item.triggered = true; // Flags for removal at turn end
                         
                         if (!b.isSplitClone && state.balls.length < 500) {
@@ -1699,13 +1741,9 @@
                break;
              }
              
-             if (!isCollidingWithAnyBlock && b.penetrationMode) {
-                 if (b.isLeader && state.abilities.hyperDrill > 0) {
-                     if (b.penetratedBlocks) b.penetratedBlocks.clear();
-                 } else {
-                     b.penetrationMode = false;
-                     if (b.penetratedBlocks) b.penetratedBlocks.clear();
-                 }
+             if (!isCollidingWithAnyBlock) {
+                 b.penetrationMode = false;
+                 if (b.penetratedBlocks) b.penetratedBlocks.clear();
              }
         }
       }
@@ -2079,6 +2117,33 @@
              ctx.moveTo(3, -8); ctx.lineTo(8, -8); ctx.lineTo(8, -3);
              
              ctx.stroke();
+        } else if (type === 'trap_ball') {
+             ctx.fillStyle = 'rgba(239, 68, 68, 0.3)'; 
+             ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.fillStyle = '#fca5a5'; 
+             ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.strokeStyle = '#991b1b'; 
+             ctx.lineWidth = 3.5;
+             ctx.lineCap = 'round';
+             ctx.beginPath();
+             ctx.moveTo(-6, -6); ctx.lineTo(6, 6);
+             ctx.moveTo(6, -6); ctx.lineTo(-6, 6);
+             ctx.stroke();
+        } else if (type === 'muddy_item') {
+             ctx.fillStyle = 'rgba(77, 124, 15, 0.4)';
+             ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.fillStyle = '#84cc16'; 
+             ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.fillStyle = '#4d7c0f'; 
+             ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+             
+             ctx.strokeStyle = '#3f6212';
+             ctx.lineWidth = 2;
+             ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.stroke();
         } else if (type === 'coin') {
              ctx.fillStyle = 'rgba(250, 204, 21, 0.4)';
              ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
