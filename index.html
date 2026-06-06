@@ -131,7 +131,7 @@
       <div class="game-over-overlay active" id="gameOverOverlay">
         
         <div style="position: absolute; top: 4.5rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; pointer-events: auto;">
-            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.5.5</div>
+            <div style="color: rgba(255,255,255,0.5); font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: bold;">v1.5.12</div>
             <button onclick="window.location.href = window.location.pathname + '?t=' + new Date().getTime()" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 0.85rem; transition: all 0.2s;">🔄 更新 (Reload)</button>
         </div>
 
@@ -365,9 +365,14 @@
           if (score >= 501 && Math.random() < 0.05) {
               type = 'healer';
           }
+          
+          let antiPassiveChance = score >= 1000 ? Math.min(0.30, 0.05 + (score - 1000) * 0.0005) : 0;
+          if (type === 'normal' && Math.random() < antiPassiveChance) {
+              type = 'anti_passive';
+          }
 
-          if (type === 'iron' || type === 'shield') {
-              shape = 'square'; // Force square for iron and shield
+          if (type === 'iron' || type === 'shield' || type === 'anti_passive') {
+              shape = 'square'; 
           } else if (Math.random() < 0.20) {
               const shapes = ['triangle_tl', 'triangle_tr', 'triangle_bl', 'triangle_br'];
               shape = shapes[Math.floor(Math.random() * shapes.length)];
@@ -755,7 +760,6 @@
         bounceCount: 0,
         history: [], 
         hitCount: 0,
-        penetrationMode: false,
         remainingPenetrations: (idx < (state.mainBallsLevel || 1)) ? ((state.abilities.hyperDrill || 0) + (state.penetrationLevel || 0)) : 0,
         penetratedBlocks: new Set()
       }));
@@ -1248,7 +1252,7 @@
             if (state.balls[i].active) { anyActive = true; break; }
         }
         if (!anyActive && state.ballsLaunched > 0 && state.ballsLaunched < state.balls.length) {
-             state.shootTimer += SHOOT_DELAY; 
+             state.shootTimer += SHOOT_DELAY * 50; 
         }
         if (state.ballsLaunched === state.balls.length) {
           state.status = 'RESOLVING';
@@ -1441,7 +1445,6 @@
                                 isSplitClone: true,
                                 bounceCount: 0,
                                 hitCount: 0,
-                                penetrationMode: false,
                                 remainingPenetrations: 0,
                                 penetratedBlocks: new Set()
                             });
@@ -1456,7 +1459,6 @@
                                 isSplitClone: true,
                                 bounceCount: 0,
                                 hitCount: 0,
-                                penetrationMode: false,
                                 remainingPenetrations: 0,
                                 penetratedBlocks: new Set()
                             });
@@ -1508,7 +1510,7 @@
 
                let hitHypotenuse = false;
                let isColliding = false;
-               const canPenetrate = b.penetrationMode || (b.penetratedBlocks && b.penetratedBlocks.has(block.id)) || (b.isLeader && state.abilities.hyperDrill > 0 && b.remainingPenetrations > 0);
+               const canPenetrate = (b.penetratedBlocks && b.penetratedBlocks.has(block.id)) || (b.isLeader && b.remainingPenetrations > 0);
 
                if (block.shape && block.shape !== 'square') {
                    const rx = b.x - blockLeft;
@@ -1572,28 +1574,29 @@
                 let isFirstHit = b.isLeader && !b.hasHitBlock;
                 if (isFirstHit) {
                     b.hasHitBlock = true;
-                    if (state.penetrationLevel > 0) {
-                        b.penetrationMode = true;
-                        b.penetratedBlocks = new Set();
-                    }
+                    if (!b.penetratedBlocks) b.penetratedBlocks = new Set();
                 }
                 
                 let skipDamage = false;
-                if (b.penetratedBlocks.has(block.id)) {
+                if (b.penetratedBlocks && b.penetratedBlocks.has(block.id)) {
                     skipDamage = true;
                 }
                   
-                let baseAttack = b.isLeader ? state.baseDamage : (1 + (state.abilities.childBallPower || 0)) * (state.childDamageMultiplier || 1.0);
+                let baseAttack = b.isLeader ? state.baseDamage : (1 + (block.type === 'anti_passive' ? 0 : (state.abilities.childBallPower || 0))) * (state.childDamageMultiplier || 1.0);
                 if (b.isLeader) {
                     baseAttack += Math.max(1, state.baseDamage); 
-                    if (isPhantomTarget && state.abilities.phantomStrike > 1) {
+                    if (isPhantomTarget && state.abilities.phantomStrike > 1 && block.type !== 'anti_passive') {
                         baseAttack += 5 * (state.abilities.phantomStrike - 1);
                     }
                 }
                 
-                let totalBaseDmg = baseAttack + bounceDamage;
+                let bounceDamageBase = bounceDamage;
+                if (block.type === 'anti_passive') {
+                    bounceDamageBase = 0; // Ignore passive bounce damage
+                }
+                
                 let isReboundExplosion = false;
-                if (!isFirstHit && b.isLeader && b.reboundExplosions > 0) {
+                if (!isFirstHit && b.isLeader && b.reboundExplosions > 0 && block.type !== 'anti_passive') {
                     isReboundExplosion = true;
                     b.reboundExplosions--;
                 }
@@ -1603,13 +1606,12 @@
                 if ((isFirstHit || isReboundExplosion) && state.explosionLevel > 0) {
                     applyExplosion = true;
                     explosionBase = state.explosionLevel * 10;
-                    totalBaseDmg += explosionBase;
                 }
 
                 let critMultiplier = 1.0;
                 let critTriggered = false;
                 const critLevel = state.abilities.criticalHit || 0;
-                if (critLevel > 0) {
+                if (critLevel > 0 && block.type !== 'anti_passive') {
                     const critChance = Math.min(1.0, 0.05 * critLevel);
                     if (Math.random() < critChance) {
                         critTriggered = true;
@@ -1622,7 +1624,7 @@
 
                 let lastSpurtMultiplier = 1.0;
                 let hasBlockNearBottom = state.blocks.some(bl => bl.hp > 0 && !bl.isTransparent && (bl.row * BLOCK_SIZE + BLOCK_SIZE) >= DOTTED_LINE_Y - BLOCK_SIZE);
-                if (state.abilities.lastSpurt && hasBlockNearBottom) {
+                if (state.abilities.lastSpurt && hasBlockNearBottom && block.type !== 'anti_passive') {
                     lastSpurtMultiplier = Math.pow(2, state.abilities.lastSpurt);
                 }
 
@@ -1630,15 +1632,19 @@
                 let expandMultiplier = 1.0;
                 if (applyExplosion) {
                      const nitroLevel = state.abilities.nitroBooster || 0;
-                     nitroMultiplier = 1 + (nitroLevel * 0.5);
-                     expandMultiplier = 1 + ((state.abilities.explosionExpand || 0) * 0.1);
+                     nitroMultiplier = block.type === 'anti_passive' ? 1.0 : 1 + (nitroLevel * 0.5);
+                     expandMultiplier = block.type === 'anti_passive' ? 1.0 : 1 + ((state.abilities.explosionExpand || 0) * 0.1);
                 }
 
                 let comboMultiplier = 1;
                 if (b.hitCount >= 200) comboMultiplier = 5;
                 else if (b.hitCount >= 100) comboMultiplier = 2;
                
-                let totalDamage = Math.floor(totalBaseDmg * critMultiplier * lastSpurtMultiplier * nitroMultiplier * expandMultiplier * comboMultiplier);
+                let globalMultiplier = critMultiplier * lastSpurtMultiplier * comboMultiplier;
+                let kineticDamage = Math.floor((baseAttack + bounceDamageBase) * globalMultiplier);
+                let explosionDamage = Math.floor(explosionBase * globalMultiplier * nitroMultiplier * expandMultiplier);
+                
+                let totalDamage = kineticDamage + explosionDamage;
 
                let hitEdge = null;
                if (!hitHypotenuse) {
@@ -1660,28 +1666,39 @@
                    }
                }
                
-                if (applyExplosion) {
-                    const splashDmg = Math.floor(explosionBase * critMultiplier * lastSpurtMultiplier * nitroMultiplier * expandMultiplier * comboMultiplier);
-                    const targetCol = block.col;
-                    const targetRow = block.row;
-                    const expRadius = 1 + (state.abilities.explosionRange || 0);
+               if (applyExplosion) {
+                    const expRadius = block.type === 'anti_passive' ? 1 : 1 + (state.abilities.explosionRange || 0);
                     
                     state.blocks.forEach(nb => {
-                        if (nb.hp > 0 && !nb.isTransparent && Math.abs(nb.col - targetCol) <= expRadius && Math.abs(nb.row - targetRow) <= expRadius) {
-                            if (nb !== block || skipDamage) {
-                                nb.hp -= splashDmg;
+                        const distCol = Math.abs(nb.col - block.col);
+                        const distRow = Math.abs(nb.row - block.row);
+                        let isHit = false;
+                        if (nb.type === 'anti_passive') {
+                            isHit = (distCol <= 1 && distRow <= 1);
+                        } else {
+                            isHit = (distCol <= expRadius && distRow <= expRadius);
+                        }
+
+                        if (nb.hp > 0 && !nb.isTransparent && isHit) {
+                            if (nb.id !== block.id) {
+                                let actualSplashDmg = explosionDamage;
+                                if (nb.type === 'anti_passive') {
+                                    actualSplashDmg = explosionBase; // Ignore passive multipliers
+                                }
+                                nb.hp -= actualSplashDmg;
+                                
+                                state.effects.push({
+                                    type: 'damage_popup',
+                                    text: `+${actualSplashDmg}`,
+                                    x: nb.col * BLOCK_SIZE + (nb.width || 1) * BLOCK_SIZE / 2,
+                                    y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2,
+                                    timer: 0.6,
+                                    scale: 0.8,
+                                    isBlue: false,
+                                    color: '#f87171'
+                                });
                             }
                             nb.hitTimer = 0.1;
-                            state.effects.push({
-                                type: 'damage_popup',
-                                text: `+${splashDmg}`,
-                                x: nb.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                                y: nb.row * BLOCK_SIZE + BLOCK_SIZE / 2 - 10,
-                                timer: 0.5,
-                                scale: 1.2,
-                                isBlue: false,
-                                color: '#ef4444'
-                            });
                        }
                    });
                    
@@ -1700,39 +1717,38 @@
                
                if (!skipDamage) {
                    b.hitCount++;
-                   
-                        if (totalDamage > 0) {
-                        if (b.hitCount >= 100) {
-                            let scale = 1.2;
-                            let isBlue = false;
-                            let color = undefined;
-                            
-                            if (comboMultiplier === 5) {
-                                scale = 1.5;
-                                isBlue = true;
-                            } else if (comboMultiplier === 2) {
-                                scale = 1.2;
-                            } else if (critTriggered) {
-                                scale = 1.4;
-                                color = '#f87171';
-                            }
-                            
-                            state.effects.push({
-                                type: 'damage_popup',
-                                text: `+${totalDamage}`,
-                                x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
-                                y: closestY - 20,
-                                timer: 0.6,
-                                scale: scale,
-                                isBlue: isBlue,
-                                color: color
-                            });
-                        }
-                        block.hitTimer = 0.1; // Trigger flash
-                    }
+                   if (kineticDamage > 0) {
+                       if (b.hitCount >= 100) {
+                           let scale = 1.0;
+                           let isBlue = false;
+                           let color = undefined;
+                           
+                           if (comboMultiplier === 5) {
+                               scale = 1.5;
+                               isBlue = true;
+                           } else if (comboMultiplier === 2) {
+                               scale = 1.2;
+                           } else if (critTriggered) {
+                               scale = 1.4;
+                               color = '#f87171';
+                           }
+                           
+                           state.effects.push({
+                               type: 'damage_popup',
+                               text: `+${kineticDamage}`,
+                               x: block.col * BLOCK_SIZE + BLOCK_SIZE / 2,
+                               y: closestY - 20,
+                               timer: 0.6,
+                               scale: scale,
+                               isBlue: isBlue,
+                               color: color
+                           });
+                       }
+                   }
+                   block.hitTimer = 0.1; // Trigger flash
                }
                
-                if ((block.type === 'muddy' || block.type === 'slime' || block.type === 'boss_muddy') && !b.penetrationMode) {
+                if ((block.type === 'muddy' || block.type === 'slime' || block.type === 'boss_muddy') && !canPenetrate) {
                    b.active = false;
                    b.history = [];
                    if (b.isLeader) {
@@ -1745,9 +1761,9 @@
                }
 
                let penetrate = false;
-               if (canPenetrate) {
+                if (canPenetrate && block.type !== 'anti_passive') {
                    penetrate = true;
-                   if (!b.penetrationMode && b.remainingPenetrations > 0 && b.penetratedBlocks && !b.penetratedBlocks.has(block.id)) {
+                   if (b.remainingPenetrations > 0 && b.penetratedBlocks && !b.penetratedBlocks.has(block.id)) {
                        b.remainingPenetrations--;
                    }
                    if (!b.penetratedBlocks) b.penetratedBlocks = new Set();
@@ -1794,7 +1810,6 @@
              }
              
              if (!isCollidingWithAnyBlock) {
-                 b.penetrationMode = false;
                  if (b.penetratedBlocks) b.penetratedBlocks.clear();
              }
         }
@@ -1991,12 +2006,12 @@
                return { ...b, row: b.row + 1, col: newCol, shield: newShield, isTransparent: (b.type === 'ghost' || b.type === 'boss_phantom') ? !b.isTransparent : false };
              });
              state.items = state.items.map(i => {
-                if (i.type === 'muddy_item') {
+                if (i.type === 'muddy_item' || i.type === 'trap_ball') {
                     return { ...i, lifetime: (i.lifetime === undefined ? 5 : i.lifetime) - 1 };
                 }
                 return i;
-             }).filter(i => !i.collected && !i.triggered && (i.type === 'muddy_item' ? i.lifetime > 0 : i.row < GRID_ROWS + 2)).map(i => {
-                if (i.type === 'muddy_item') {
+             }).filter(i => !i.collected && !i.triggered && ((i.type === 'muddy_item' || i.type === 'trap_ball') ? i.lifetime > 0 : i.row < GRID_ROWS + 2)).map(i => {
+                if (i.type === 'muddy_item' || i.type === 'trap_ball') {
                     let newCol, newRow;
                     let attempts = 0;
                     do {
@@ -2381,7 +2396,9 @@
            mainColor = '#a855f7'; highlightColor = '#c084fc';
          } else if (block.type === 'shield') {
             mainColor = '#eab308'; highlightColor = '#fde047';
-         } else if (block.type === 'healer') {
+         } else if (block.type === 'anti_passive') {
+            mainColor = '#171717'; highlightColor = '#404040';
+        } else if (block.type === 'healer') {
             mainColor = '#FF1493'; highlightColor = '#FF69B4'; // Neon pink
          } else {
            const ratio = Math.max(0, Math.min(1, (block.hp - 1) / 49)); 
@@ -2550,6 +2567,18 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText('+', textX, textY);
+            }
+            
+            if (block.type === 'anti_passive') {
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x + margin + sizeW/2, y + margin + sizeH/2, sizeW * 0.3, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x + margin + sizeW * 0.25, y + margin + sizeH * 0.25);
+                ctx.lineTo(x + margin + sizeW * 0.75, y + margin + sizeH * 0.75);
+                ctx.stroke();
             }
 
             // Details
